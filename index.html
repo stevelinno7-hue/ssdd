@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roblox V19 - 經典介面版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        
+        /* --- 1. 核心主題變數 (還原 V17 色調) --- */
+        :root { 
+            --bg-base: #121212; 
+            --primary: #4dabf7;  /* 經典藍 */
+            --accent: #ffd43b;   /* 金幣黃 */
+            --danger: #ff6b6b;   /* 警告紅 */
+            --success: #51cf66;  /* 成功綠 */
+            --glass-bg: rgba(30, 32, 35, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --app-bg: radial-gradient(circle at center, #1a1b1e 0%, #000000 100%);
+            --text-main: #ffffff;
+            --text-sub: #adb5bd;
+        }
+
+        /* 黃金主題 (Gold) */
+        body.theme-gold {
+            --primary: #fcc419; 
+            --accent: #fff; 
+            --danger: #ff8787;
+            --glass-bg: rgba(45, 38, 10, 0.95);
+            --glass-border: rgba(255, 215, 0, 0.4);
+            --card-bg: rgba(255, 215, 0, 0.1);
+            --app-bg: radial-gradient(circle at center, #423005 0%, #1a1200 100%);
+            --text-main: #fff9db;
+            --text-sub: #e9ecef;
+        }
+
+        /* 鑽石主題 (Diamond) */
+        body.theme-diamond {
+            --primary: #00d2ff; 
+            --accent: #e0faff; 
+            --danger: #ff6b6b;
+            --glass-bg: rgba(10, 25, 45, 0.95);
+            --glass-border: rgba(0, 210, 255, 0.5);
+            --card-bg: rgba(0, 210, 255, 0.1);
+            --app-bg: radial-gradient(circle at center, #00284d 0%, #000814 100%);
+            --text-main: #e3fafc;
+            --text-sub: #c5f6fa;
+        }
+
+        body { 
+            margin: 0; background: #000; color: var(--text-main); 
+            font-family: 'Fredoka', sans-serif; 
+            overflow: hidden; touch-action: none; user-select: none; 
+            display: flex; justify-content: center; align-items: center; height: 100vh; 
+        }
+        
+        #app { 
+            position: relative; width: 100%; max-width: 1024px; height: 100%; max-height: 768px; 
+            background: var(--app-bg); overflow: hidden; display: flex; flex-direction: column; 
+            box-shadow: 0 0 60px rgba(0,0,0,0.8); border-radius: 24px; 
+            border: 1px solid var(--glass-border);
+            transition: background 0.5s ease;
+        }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+        
+        /* Layers */
+        .layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none !important; flex-direction:column; }
+        .layer.active { display: flex !important; }
+        .interactive { pointer-events: auto; }
+        
+        /* Buttons */
+        .btn { 
+            padding: 10px 20px; border: none; border-radius: 12px; font-weight: bold; 
+            cursor: pointer; color: #212529; margin: 5px; font-size: 16px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: all 0.1s; 
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-blue { background: var(--primary); } 
+        .btn-red { background: var(--danger); color: white; } 
+        .btn-gold { background: var(--accent); } 
+        .btn-green { background: var(--success); color: white; }
+        .btn-lang { 
+            position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); 
+            color: var(--text-main); border: 1px solid var(--glass-border); padding: 5px 10px; font-size: 12px; 
+        }
+
+        /* Toast */
+        #toast {
+            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); padding: 12px 30px; border-radius: 50px;
+            color: white; z-index: 9999; display: none; border: 1px solid var(--primary);
+            font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap;
+        }
+
+        /* Login */
+        #l-login { background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
+        .card { 
+            background: var(--glass-bg); padding: 40px; border-radius: 24px; 
+            border: 1px solid var(--glass-border); text-align: center; width: 340px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: background 0.5s;
+        }
+        input { 
+            width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; 
+            border: 2px solid var(--glass-border); background: rgba(0,0,0,0.2); 
+            color: var(--text-main); outline: none; text-align: center; font-size: 18px; 
+        }
+        input:focus { border-color: var(--primary); }
+        
+        /* Menu Layout (還原 V17) */
+        #l-menu { background: var(--glass-bg); z-index: 50; transition: background 0.5s; }
+        .top-bar { 
+            padding: 15px 25px; display: flex; justify-content: space-between; 
+            background: rgba(0,0,0,0.2); align-items: center; border-bottom: 1px solid var(--glass-border);
+        }
+        .main-view { flex: 1; display: flex; overflow: hidden; }
+        .sidebar { 
+            width: 200px; padding: 15px; background: rgba(0,0,0,0.1); 
+            display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--glass-border);
+        }
+        .tab { 
+            padding: 12px 15px; cursor: pointer; color: var(--text-sub); border-radius: 10px; 
+            font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+        }
+        .tab:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .tab.active { background: var(--primary); color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        
+        /* Grid Content */
+        .content { flex: 1; padding: 25px; overflow-y: auto; display: none; }
+        .content.active-grid { display: grid; gap: 20px; align-content: start; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        
+        /* Game Card (Fixed Name) */
+        .game-card { 
+            background: var(--card-bg); border: 1px solid var(--glass-border); 
+            border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; 
+            transition: 0.2s; position: relative; overflow: hidden; 
+        }
+        .game-card:hover { transform: translateY(-5px); border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        .icon-img { font-size: 48px; display: block; margin-bottom: 10px; }
+        .game-card h4 { margin: 5px 0; font-size: 18px; }
+        
+        /* Shop */
+        .shop-item { 
+            background: var(--card-bg); border: 1px solid var(--glass-border); 
+            border-radius: 16px; padding: 20px; text-align: center; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+        .shop-item h4 { margin: 10px 0; color: var(--primary); font-size: 18px; }
+        .shop-item p { font-size: 13px; color: var(--text-sub); margin-bottom: 15px; flex: 1; }
+
+        /* HUD */
+        #l-game { z-index: 10; }
+        .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: none; }
+        .pill { 
+            background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px; 
+            border: 1px solid rgba(255,255,255,0.2); font-weight: bold; margin-right: 10px; 
+            display: inline-block; color: white; backdrop-filter: blur(4px);
+        }
+        
+        /* Controls */
+        .controls { position: absolute; bottom: 30px; width: 100%; height: 180px; pointer-events: none; }
+        .dpad { position: absolute; bottom: 0; left: 30px; width: 160px; height: 160px; }
+        .actions { position: absolute; bottom: 0; right: 30px; width: 160px; height: 100px; }
+        
+        .c-btn { 
+            position: absolute; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); 
+            border-radius: 20px; display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); user-select: none; font-size: 24px; color: white; 
+        }
+        .c-btn:active, .c-btn.press { transform: scale(0.9); background: var(--primary); color: #000; }
+        
+        .b-u { top:0; left:55px; width:50px; height:50px; } .b-d { bottom:0; left:55px; width:50px; height:50px; }
+        .b-l { top:55px; left:0; width:50px; height:50px; } .b-r { top:55px; right:0; width:50px; height:50px; }
+        .b-a { right:0; bottom:10px; width:80px; height:80px; border-radius:50%; font-size:32px; }
+        .b-b { right:90px; bottom:0; width:60px; height:60px; border-radius:50%; font-size:20px; }
+
+        /* Modal */
+        #l-modal { background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
+        .key-hint { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid rgba(255,255,255,0.3); margin: 0 2px; display: inline-block;}
+        .gacha-anim { font-size: 60px; animation: pop 0.5s infinite alternate; }
+        @keyframes pop { from{transform:scale(1);} to{transform:scale(1.2);} }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <canvas id="cvs"></canvas>
+    <div id="toast">提示</div>
+
+    <!-- 1. Login (Restore V17 Style) -->
+    <div id="l-login" class="layer active interactive">
+        <div class="card">
+            <button class="btn btn-lang" onclick="Lang.toggle()">English / 中文</button>
+            <h1 style="color:var(--primary); margin:0 0 10px 0; font-size: 40px;" data-t="app_title">3D 冒險盒</h1>
+            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V19 經典介面版</p>
+            <input type="text" id="uid" data-ph="login_placeholder">
+            <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="Sys.login()" data-t="login_btn">開始冒險</button>
+        </div>
+    </div>
+
+    <!-- 2. Menu (Restore V17 Style) -->
+    <div id="l-menu" class="layer interactive">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px; height:40px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>
+                <div>
+                    <div style="font-weight:bold; font-size:18px;"><span id="m-name">Guest</span></div>
+                    <div style="font-size:12px; color:var(--text-sub);">Player ID</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:20px; font-size:18px; font-weight:bold; background:rgba(0,0,0,0.3); padding:8px 20px; border-radius:50px; border:1px solid var(--glass-border);">
+                <span style="color:var(--accent)">💰 <span id="m-coin">0</span></span>
+                <span style="color:var(--danger)">💎 <span id="m-gem">0</span></span>
+            </div>
+        </div>
+        <div class="main-view">
+            <div class="sidebar">
+                <div class="tab active" onclick="Menu.sw('games', this)"><span style="font-size:20px;">🎮</span> <span data-t="tab_games">遊戲大廳</span></div>
+                <div class="tab" onclick="Menu.sw('shop', this)"><span style="font-size:20px;">🛒</span> <span data-t="tab_shop">道具商店</span></div>
+                <div class="tab" onclick="Menu.sw('bag', this)"><span style="font-size:20px;">🎒</span> <span data-t="tab_bag">我的背包</span></div>
+                <div class="tab" onclick="Menu.sw('ai', this)"><span style="font-size:20px;">🤖</span> <span data-t="tab_ai">AI 助手</span></div>
+                <div style="flex:1"></div>
+                <div class="tab" style="color:var(--danger)" onclick="Sys.logout()"><span style="font-size:20px;">🚪</span> <span data-t="btn_logout">登出</span></div>
+            </div>
+            
+            <div id="p-games" class="content active-grid"></div>
+            <div id="p-shop" class="content grid-layout"></div>
+            <div id="p-bag" class="content grid-layout"></div>
+            
+            <div id="p-ai" class="content">
+                <div id="chat-hist" style="height:calc(100% - 60px); background:rgba(0,0,0,0.2); border-radius:16px; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:15px; border:1px solid var(--glass-border);">
+                    <div style="color:var(--primary); font-weight:bold;" data-t="ai_welcome">AI: 嗨！需要攻略或賺錢建議嗎？</div>
+                </div>
+                <div style="display:flex; gap:15px; margin-top:15px;">
+                    <input id="chat-in" data-ph="ai_placeholder" style="flex:1; text-align:left; padding-left:20px; margin:0; font-size:16px; background:rgba(255,255,255,0.1);">
+                    <button class="btn btn-blue" style="margin:0; padding:0 30px;" onclick="AI.ask()" data-t="btn_send">發送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Game HUD -->
+    <div id="l-game" class="layer">
+        <div class="hud">
+            <div>
+                <span class="pill" style="border-color:var(--accent); color:var(--accent);"><span data-t="hud_level">Lv</span>.<span id="g-lvl">1</span></span>
+                <span class="pill" style="border-color:var(--primary); color:var(--primary);"><span data-t="hud_score">Score</span>:<span id="g-scr">0</span></span>
+                <span class="pill" style="border-color:var(--danger); color:var(--danger);"><span data-t="hud_hp">HP</span>:<span id="g-hp">100</span></span>
+            </div>
+            <div class="interactive">
+                <button class="btn btn-red" style="padding:8px 20px; margin:0;" onclick="Eng.pause()">II</button>
+            </div>
+        </div>
+        
+        <div class="controls interactive" id="ctrl-std">
+            <div class="dpad">
+                <div class="c-btn b-u" data-k="ArrowUp">▲</div>
+                <div class="c-btn b-d" data-k="ArrowDown">▼</div>
+                <div class="c-btn b-l" data-k="ArrowLeft">◀</div>
+                <div class="c-btn b-r" data-k="ArrowRight">▶</div>
+            </div>
+            <div class="actions">
+                <div class="c-btn b-a" data-k="KeyA">A</div>
+                <div class="c-btn b-b" data-k="KeyB">B</div>
+            </div>
+        </div>
+        
+        <div class="controls interactive" id="ctrl-rhy" style="display:none">
+             <div style="position:absolute; bottom:20px; width:100%; display:flex; justify-content:center; gap:15px;">
+                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyD">D</div>
+                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyF">F</div>
+                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyJ">J</div>
+                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyK">K</div>
+             </div>
+        </div>
+    </div>
+
+    <!-- 4. Modal -->
+    <div id="l-modal" class="layer interactive">
+        <div class="card" style="width: 420px; max-width:90%;">
+            <h2 id="mo-title" style="color:var(--primary); margin-top:0; font-size:28px;">標題</h2>
+            <div id="mo-body" style="margin:25px 0; color:var(--text-sub); line-height:1.6; font-size:18px;">內容</div>
+            <div id="mo-foot"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* --- 0. LANGUAGE SYSTEM --- */
+const Lang = (function() {
+    let cur = localStorage.getItem('rbx_lang') || 'zh-TW';
+    const data = {
+        "zh-TW": {
+            app_title: "3D 冒險盒", app_subtitle: "V19 經典介面版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
+            tab_games: "遊戲大廳", tab_shop: "道具商店", tab_bag: "我的背包", tab_ai: "AI 助手", btn_logout: "登出",
+            ai_welcome: "AI: 嗨！需要攻略或賺錢建議嗎？", ai_placeholder: "例如：迷宮怎麼過？", btn_send: "發送",
+            hud_score: "分數", hud_level: "關卡", hud_hp: "血量",
+            modal_pause: "暫停", modal_rest: "休息一下", btn_continue: "繼續", btn_exit: "離開",
+            btn_retry: "重試", btn_lobby: "回大廳", btn_next: "下一關", msg_win: "勝利！", msg_fail: "失敗",
+            msg_get_coin: "獲得金幣", shop_owned: "已擁有", shop_buy: "購買",
+            bag_empty: "背包空空的...", bag_equip: "已裝備",
+            toast_welcome: "歡迎回來", toast_new: "歡迎新玩家！獲得 1000 金幣！", toast_no_money: "金幣不足！",
+            toast_bought: "購買成功",
+            g_maze: "迷宮探險", g_space: "星際守護者", g_puzzle: "魔法推箱", g_race: "極速飄移",
+            g_horror: "恐怖醫院", g_rhythm: "節奏大師", g_snake: "貪吃蛇", g_jump: "跳跳樂",
+            g_break: "打磚塊", g_mem: "記憶翻牌", g_dodge: "彈幕閃避", g_click: "挖礦大亨",
+            i_gem: "神秘寶石袋", id_gem: "隨機獲得 10-100 寶石",
+            i_mag: "超級磁鐵", id_mag: "自動吸附金幣範圍+20%",
+            i_exp: "經驗藥水", id_exp: "立即獲得 500 經驗",
+            i_rev: "復活十字架", id_rev: "死亡時自動復活 (消耗)",
+            i_spd: "風之靴", id_spd: "速度 +1",
+            i_hp: "紅寶石護符", id_hp: "血量 +20",
+            i_s1: "黃金霸主", id_s1: "解鎖奢華黃金介面",
+            i_s2: "鑽石星辰", id_s2: "解鎖科技鑽石介面",
+            i_key: "萬能鑰匙", id_key: "跳關道具"
+        },
+        "en": {
+            app_title: "3D Adventure Box", app_subtitle: "V19 Classic UI", login_placeholder: "Enter ID to Load Save", login_btn: "Start Adventure",
+            tab_games: "Games", tab_shop: "Shop", tab_bag: "Inventory", tab_ai: "AI Helper", btn_logout: "Logout",
+            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play maze?", btn_send: "Send",
+            hud_score: "Score", hud_level: "Lv.", hud_hp: "HP",
+            modal_pause: "Paused", modal_rest: "Take a break", btn_continue: "Resume", btn_exit: "Exit",
+            btn_retry: "Retry", btn_lobby: "Lobby", btn_next: "Next Level", msg_win: "Victory!", msg_fail: "Defeat",
+            msg_get_coin: "Coins Earned", shop_owned: "Owned", shop_buy: "Buy",
+            bag_empty: "Inventory empty...", bag_equip: "Equipped",
+            toast_welcome: "Welcome back", toast_new: "Welcome! +1000 Coins!", toast_no_money: "Not enough coins!",
+            toast_bought: "Purchased",
+            g_maze: "Maze Runner", g_space: "Space Guardian", g_puzzle: "Sokoban", g_race: "Speed Racer",
+            g_horror: "Horror Hospital", g_rhythm: "Rhythm Master", g_snake: "Snake", g_jump: "Jumper",
+            g_break: "Breakout", g_mem: "Memory Flip", g_dodge: "Dodger", g_click: "Mining Tycoon",
+            i_gem: "Gem Bag", id_gem: "Random 10-100 Gems",
+            i_mag: "Super Magnet", id_mag: "Coin Range +20%",
+            i_exp: "EXP Potion", id_exp: "+500 EXP",
+            i_rev: "Revive Cross", id_rev: "Auto Revive",
+            i_spd: "Wind Boots", id_spd: "Speed +1",
+            i_hp: "Ruby Amulet", id_hp: "HP +20",
+            i_s1: "Gold Theme", id_s1: "Unlock Gold UI",
+            i_s2: "Diamond Theme", id_s2: "Unlock Diamond UI",
+            i_key: "Master Key", id_key: "Skip Level"
+        }
+    };
+
+    function t(key) { return data[cur][key] || key; }
+    function toggle() {
+        cur = cur === 'zh-TW' ? 'en' : 'zh-TW';
+        localStorage.setItem('rbx_lang', cur);
+        apply();
+    }
+    function apply() {
+        document.querySelectorAll('[data-t]').forEach(el => el.innerText = t(el.dataset.t));
+        document.querySelectorAll('[data-ph]').forEach(el => el.placeholder = t(el.dataset.ph));
+        if(document.getElementById('l-menu').classList.contains('active')) Menu.init();
+    }
+    setTimeout(apply, 10);
+    return { t, toggle, get cur(){return cur} };
+})();
+
+/* --- 1. SYSTEM CORE --- */
+const Sys = (function() {
+    let user = { id:'', coins:0, gems:0, bag:[], stats:{spd:0, hp:0}, progress:{}, theme:'default' };
+    const items = [
+        {id:'gem_pack', t:'i_gem', d:'id_gem', price:500, type:'gacha', icon:'💎'},
+        {id:'magnet', t:'i_mag', d:'id_mag', price:800, type:'passive', val:1, icon:'🧲'},
+        {id:'potion_exp', t:'i_exp', d:'id_exp', price:1000, type:'use', val:500, icon:'🧪'},
+        {id:'revive', t:'i_rev', d:'id_rev', price:1500, type:'item', val:1, icon:'✝️'},
+        {id:'spd1', t:'i_spd', d:'id_spd', price:200, type:'spd', val:1, icon:'👟'},
+        {id:'hp1', t:'i_hp', d:'id_hp', price:300, type:'hp', val:20, icon:'❤️'},
+        {id:'skin1', t:'i_s1', d:'id_s1', price:5000, type:'skin', val:1, icon:'🏆'},
+        {id:'skin2', t:'i_s2', d:'id_s2', price:10000, type:'skin', val:2, icon:'💠'},
+        {id:'key', t:'i_key', d:'id_key', price:100, type:'key', val:1, icon:'🔑'}
+    ];
+
+    function login() {
+        const id = document.getElementById('uid').value.trim() || "Guest";
+        const save = localStorage.getItem('rbx_v19_'+id);
+        if(save) {
+            user = JSON.parse(save);
+            if(!user.progress) user.progress = {};
+            toast(Lang.t('toast_welcome') + `, ${user.id}！`);
+        } else {
+            user = { ...user, id, coins:1000, gems:20, progress:{} };
+            user.bag.push({id:'newbie', t:'i_gem', icon:'🎁'});
+            toast(Lang.t('toast_new'));
+        }
+        applyTheme();
+        updateUI();
+        Layer.sw('l-menu');
+        Menu.init();
+    }
+    
+    function logout() { save(); Layer.sw('l-login'); document.body.className=''; }
+    function save() { localStorage.setItem('rbx_v19_'+user.id, JSON.stringify(user)); updateUI(); }
+    
+    function applyTheme() {
+        document.body.className = '';
+        if(user.bag.some(i => i.id === 'skin2')) document.body.classList.add('theme-diamond');
+        else if(user.bag.some(i => i.id === 'skin1')) document.body.classList.add('theme-gold');
+    }
+
+    function updateUI() {
+        document.getElementById('m-name').innerText = user.id;
+        document.getElementById('m-coin').innerText = user.coins;
+        document.getElementById('m-gem').innerText = user.gems;
+    }
+    
+    function buy(idx) {
+        const it = items[idx];
+        if(['spd','hp','skin','passive'].includes(it.type) && user.bag.some(i=>i.id===it.id)) return toast(Lang.t('shop_owned'), true);
+        if(user.coins >= it.price) {
+            user.coins -= it.price;
+            if(it.type === 'gacha') {
+                let amt = Math.floor(Math.random()*90)+10;
+                user.gems += amt;
+                Layer.modal("Gacha", `💎 +${amt}`, `<button class="btn btn-blue" onclick="Layer.closeModal()">OK</button>`);
+            } else if(it.type === 'key') {
+                user.gems += 5; toast("+5 Gems");
+            } else {
+                user.bag.push(it);
+                if(it.type==='spd') user.stats.spd += it.val;
+                if(it.type==='hp') user.stats.hp += it.val;
+                if(it.type==='skin') { applyTheme(); }
+            }
+            save();
+            Menu.renderShop(); Menu.renderBag();
+            toast(Lang.t('toast_bought'));
+        } else {
+            toast(Lang.t('toast_no_money'), true);
+        }
+    }
+
+    function toast(msg, err=false) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = err ? 'toast-err' : '';
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2000);
+    }
+
+    return { login, logout, save, get user(){return user}, get items(){return items}, buy, updateUI, toast };
+})();
+
+/* --- 2. LAYER & INPUT --- */
+const Layer = {
+    sw: (id) => {
+        document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'l-menu') Render.resize();
+    },
+    modal: (t, b, html) => {
+        document.getElementById('mo-title').innerHTML = t;
+        document.getElementById('mo-body').innerHTML = b;
+        document.getElementById('mo-foot').innerHTML = html;
+        document.getElementById('l-modal').classList.add('active');
+    },
+    closeModal: () => document.getElementById('l-modal').classList.remove('active')
+};
+
+const Input = { u:0, d:0, l:0, r:0, a:0, b:0 };
+const setK = (k,v) => {
+    if(k==='ArrowUp'||k==='KeyW') Input.u=v; if(k==='ArrowDown'||k==='KeyS') Input.d=v;
+    if(k==='ArrowLeft'||k==='KeyA') Input.l=v; if(k==='ArrowRight'||k==='KeyD') Input.r=v;
+    if(k==='KeyZ'||k==='Space') Input.a=v; if(k==='KeyX'||k==='ShiftLeft') Input.b=v;
+    if(k==='KeyD') Input.l=v; if(k==='KeyF') Input.d=v; if(k==='KeyJ') Input.u=v; if(k==='KeyK') Input.r=v;
+};
+window.onkeydown = e => { setK(e.code,1); if(e.code==='Escape') Eng.pause(); };
+window.onkeyup = e => setK(e.code,0);
+document.querySelectorAll('.c-btn').forEach(b => {
+    const k = b.dataset.k;
+    const press = (e) => { e.preventDefault(); b.classList.add('press'); setK(k, 1); };
+    const release = (e) => { e.preventDefault(); b.classList.remove('press'); setK(k, 0); };
+    b.addEventListener('mousedown', press); b.addEventListener('touchstart', press, {passive:false});
+    b.addEventListener('mouseup', release); b.addEventListener('touchend', release); b.addEventListener('mouseleave', release);
+});
+
+/* --- 3. RENDER --- */
+const Render = (function() {
+    const cvs = document.getElementById('cvs');
+    const ctx = cvs.getContext('2d');
+    let W, H;
+    function resize() { W = cvs.parentElement.clientWidth; H = cvs.parentElement.clientHeight; cvs.width=W; cvs.height=H; }
+    window.onresize = resize;
+
+    const Draw = {
+        clear: (c) => { 
+            if(!c) c = '#1a1a1d';
+            if(document.body.classList.contains('theme-gold')) c = '#332200';
+            if(document.body.classList.contains('theme-diamond')) c = '#001a33';
+            let g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, c); g.addColorStop(1, '#000');
+            ctx.fillStyle=g; ctx.fillRect(0,0,W,H); 
+        },
+        rect: (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(x,y,w,h); },
+        box: (x,y,w,h,c,d=5) => {
+            ctx.fillStyle = shade(c, -40); ctx.beginPath(); ctx.moveTo(x+w,y); ctx.lineTo(x+w+d,y-d); ctx.lineTo(x+w+d,y+h-d); ctx.lineTo(x+w,y+h); ctx.fill();
+            ctx.fillStyle = shade(c, 40); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+d,y-d); ctx.lineTo(x+w+d,y-d); ctx.lineTo(x+w,y); ctx.fill();
+            ctx.fillStyle = c; ctx.fillRect(x,y,w,h);
+        },
+        circle: (x,y,r,c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); },
+        text: (t,x,y,s=30,c='#fff') => { ctx.fillStyle=c; ctx.font=`bold ${s}px Fredoka`; ctx.textAlign='center'; ctx.fillText(t,x,y); },
+        player: (x,y,c,s=1) => {
+            if(Sys.user.bag.some(i=>i.id==='skin2')) c='#00d2ff'; else if(Sys.user.bag.some(i=>i.id==='skin1')) c='#fcc419';
+            Draw.box(x-10*s,y-10*s,20*s,20*s,c,5*s); ctx.fillStyle='white'; ctx.fillRect(x-5*s,y-5*s,4*s,4*s); ctx.fillRect(x+3*s,y-5*s,4*s,4*s);
+        },
+        pattern: (type) => {
+            if(type==='grass') { ctx.fillStyle='rgba(0,255,0,0.05)'; for(let i=0;i<W;i+=40)for(let j=0;j<H;j+=40) if((i+j)%80==0) ctx.fillRect(i,j,40,40); }
+            if(type==='road') { ctx.fillStyle='#444'; ctx.fillRect(W/2-100,0,200,H); ctx.fillStyle='#fff'; for(let i=0;i<H;i+=60) ctx.fillRect(W/2-5,i,10,40); }
+            if(type==='grid') { ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.beginPath(); for(let i=0;i<W;i+=40){ctx.moveTo(i,0);ctx.lineTo(i,H);} for(let i=0;i<H;i+=40){ctx.moveTo(0,i);ctx.lineTo(W,i);} ctx.stroke(); }
+        }
+    };
+    function shade(col, amt) {
+        let usePound = false; if (col[0] == "#") { col = col.slice(1); usePound = true; }
+        let num = parseInt(col,16);
+        let r = (num >> 16) + amt; if (r > 255) r = 255; else if (r < 0) r = 0;
+        let b = ((num >> 8) & 0x00FF) + amt; if (b > 255) b = 255; else if (b < 0) b = 0;
+        let g = (num & 0x0000FF) + amt; if (g > 255) g = 255; else if (g < 0) g = 0;
+        return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+    }
+    return { resize, Draw, get w(){return W}, get h(){return H} };
+})();
+
+/* --- 4. GAME LOGIC --- */
+class GBase { 
+    constructor(cfg, lv) { 
+        this.cfg = cfg || {}; this.lv = lv || 1; this.score = 0; this.t = 0;
+        this.hp = 100 + Sys.user.stats.hp; this.spd = Sys.user.stats.spd;
+    }
+    win() { Eng.over(1); } fail() { Eng.over(0); }
+}
+
+class GMaze extends GBase {
+    start() { this.p={x:50,y:50}; this.goal={x:Render.w-50,y:Render.h-50}; this.ws=this.genMaze(15+this.lv*3); this.es=[]; let eCount=Math.floor(this.lv/2)+1; for(let i=0;i<eCount;i++) this.es.push({x:Math.random()*Render.w, y:Math.random()*Render.h, vx:1+this.lv*0.1, vy:1+this.lv*0.1}); }
+    genMaze(count) { let w=[]; w.push({x:0,y:0,w:Render.w,h:20},{x:0,y:Render.h-20,w:Render.w,h:20},{x:0,y:0,w:20,h:Render.h},{x:Render.w-20,y:0,w:20,h:Render.h}); for(let i=0;i<count;i++) { let x=Math.random()*Render.w, y=Math.random()*Render.h; if(Math.hypot(x-50,y-50)<150) continue; w.push({x, y, w:Math.random()>0.5?100:20, h:Math.random()>0.5?20:100}); } return w; }
+    upd() { let s=4+this.spd*0.5; if(Input.u)this.p.y-=s; if(Input.d)this.p.y+=s; if(Input.l)this.p.x-=s; if(Input.r)this.p.x+=s; if(!this.ws.some(w=>this.p.x>w.x-10 && this.p.x<w.x+w.w+10 && this.p.y>w.y-10 && this.p.y<w.y+w.h+10)) {this.lx=this.p.x;this.ly=this.p.y;} else {this.p.x=this.lx;this.p.y=this.ly;} this.es.forEach(e=>{e.x+=e.vx; e.y+=e.vy; if(e.x<0||e.x>Render.w)e.vx*=-1; if(e.y<0||e.y>Render.h)e.vy*=-1; if(Math.hypot(this.p.x-e.x, this.p.y-e.y)<25){this.hp-=10;if(this.hp<=0)this.fail();}}); if(Math.hypot(this.p.x-this.goal.x, this.p.y-this.goal.y)<30)this.win(); }
+    drw() { Render.Draw.clear(this.cfg.bg); Render.Draw.pattern('grid'); Render.Draw.text("EXIT",this.goal.x,this.goal.y-30); Render.Draw.box(this.goal.x-15,this.goal.y-15,30,30,'#51cf66'); this.ws.forEach(w=>Render.Draw.box(w.x,w.y,w.w,w.h,'#868e96')); this.es.forEach(e=>Render.Draw.box(e.x-10,e.y-10,20,20,'#ff6b6b')); Render.Draw.player(this.p.x,this.p.y,'#4dabf7'); }
+}
+class GSnake extends GBase { start() { this.sz=20; this.sn=[{x:10,y:10}]; this.d={x:1,y:0}; this.fd={x:15,y:15}; this.tick=Math.max(3, 12-this.lv*0.5); } upd() { if(Input.u&&this.d.y===0)this.d={x:0,y:-1}; if(Input.d&&this.d.y===0)this.d={x:0,y:1}; if(Input.l&&this.d.x===0)this.d={x:-1,y:0}; if(Input.r&&this.d.x===0)this.d={x:1,y:0}; if(this.t++%Math.floor(this.tick)===0) { let h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; if(h.x<0||h.x>Render.w/this.sz||h.y<0||h.y>Render.h/this.sz||this.sn.some(s=>s.x===h.x&&s.y===h.y)) return this.fail(); this.sn.unshift(h); if(h.x===this.fd.x&&h.y===this.fd.y) { this.score+=10; this.fd={x:Math.floor(Math.random()*(Render.w/this.sz)), y:Math.floor(Math.random()*(Render.h/this.sz))}; } else this.sn.pop(); if(this.score>=50+this.lv*20) this.win(); } } drw() { Render.Draw.clear('#222'); Render.Draw.pattern('grass'); Render.Draw.box(this.fd.x*this.sz, this.fd.y*this.sz, this.sz, this.sz, '#ff6b6b'); this.sn.forEach(s=>Render.Draw.box(s.x*this.sz, s.y*this.sz, this.sz, this.sz, '#51cf66')); } }
+class GBreak extends GBase { start() { this.pad={x:Render.w/2}; this.b={x:Render.w/2, y:Render.h/2, vx:4+this.lv*0.2, vy:4+this.lv*0.2}; this.bls=[]; for(let i=0;i<8+this.lv;i++) this.bls.push({x:(i%6)*90+50, y:Math.floor(i/6)*30+50, a:1}); } upd() { if(Input.l)this.pad.x-=8; if(Input.r)this.pad.x+=8; this.b.x+=this.b.vx; this.b.y+=this.b.vy; if(this.b.x<0||this.b.x>Render.w)this.b.vx*=-1; if(this.b.y<0)this.b.vy*=-1; if(this.b.y>Render.h-30 && Math.abs(this.b.x-this.pad.x)<60) this.b.vy*=-1; if(this.b.y>Render.h) this.fail(); this.bls.forEach(k=>{if(k.a && this.b.x>k.x && this.b.x<k.x+80 && this.b.y>k.y && this.b.y<k.y+20){k.a=0; this.b.vy*=-1; this.score+=10;}}); if(this.bls.every(k=>!k.a)) this.win(); } drw() { Render.Draw.clear('#222'); Render.Draw.box(this.pad.x-50, Render.h-20, 100, 15, '#4dabf7'); Render.Draw.circle(this.b.x, this.b.y, 8, '#fff'); this.bls.forEach(k=>{if(k.a) Render.Draw.box(k.x, k.y, 80, 20, '#ff6b6b');}); } }
+class GRace extends GBase { start() { this.px=Render.w/2; this.obs=[]; this.speed=6+this.lv*0.5; } upd() { if(Input.l)this.px-=6; if(Input.r)this.px+=6; if(this.t++%(Math.max(10,30-this.lv))===0) this.obs.push({x:Math.random()*(200)+Render.w/2-100, y:0, w:Math.random()*50+30}); this.obs.forEach(o=>{o.y+=this.speed; o.w+=1; o.x-=0.5; if(Math.abs(this.px-o.x)<o.w && Math.abs(Render.h-80-o.y)<20) this.fail(); }); this.score=this.t; if(this.score>500+this.lv*100) this.win(); } drw() { Render.Draw.clear('#338'); Render.Draw.pattern('road'); Render.Draw.box(this.px-20, Render.h-80, 40, 20, '#fcc419'); this.obs.forEach(o=>Render.Draw.box(o.x, o.y, o.w, 20, '#ff6b6b')); } }
+class GPong extends GBase { start() { this.bx=Render.w/2; this.by=50; this.vx=4+this.lv*0.2; this.vy=4+this.lv*0.2; this.px=Render.w/2; } upd() { if(Input.l)this.px-=8; if(Input.r)this.px+=8; this.bx+=this.vx; this.by+=this.vy; if(this.bx<0||this.bx>Render.w)this.vx*=-1; if(this.by<0)this.vy*=-1; if(this.by>Render.h-40 && Math.abs(this.bx-this.px)<50) { this.vy*=-1; this.score++; } if(this.by>Render.h) this.fail(); if(this.score>=5+this.lv) this.win(); } drw() { Render.Draw.clear('#225522'); Render.Draw.rect(0, Render.h/2-2, Render.w, 4, '#fff'); Render.Draw.box(this.px-50, Render.h-30, 100, 10, '#fff'); Render.Draw.circle(this.bx, this.by, 10, '#fcc419'); } }
+class GDrop extends GBase { start() { this.blks=[]; this.cur={x:0, w:100}; this.dir=3+this.lv*0.5; } upd() { this.cur.x+=this.dir; if(this.cur.x>Render.w-100||this.cur.x<0)this.dir*=-1; if(Input.a) { Input.a=0; this.blks.push({x:this.cur.x, y:Render.h-this.blks.length*30-30, w:100}); this.score++; if(this.score>=5+this.lv) this.win(); } } drw() { Render.Draw.clear('#222'); Render.Draw.box(this.cur.x, 50, 100, 30, '#fff'); this.blks.forEach(b=>Render.Draw.box(b.x, b.y, b.w, 30, '#51cf66')); } }
+class GSpace extends GBase { start(){this.p={x:Render.w/2,y:Render.h-50};this.es=[];this.bs=[];} upd(){if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;if(Input.a&&this.t%10==0)this.bs.push({x:this.p.x,y:this.p.y});if(this.t++%(50-this.lv)==0)this.es.push({x:Math.random()*Render.w,y:0});this.bs.forEach(b=>b.y-=10);this.es.forEach(e=>e.y+=3);this.bs=this.bs.filter(b=>{let h=this.es.findIndex(e=>Math.hypot(e.x-b.x,e.y-b.y)<30);if(h>-1){this.es.splice(h,1);this.score+=10;return 0}return b.y>0});if(this.es.some(e=>e.y>Render.h))this.fail();if(this.score>100+this.lv*20)this.win();} drw(){Render.Draw.clear('#000');Render.Draw.player(this.p.x,this.p.y,'#aaa');this.es.forEach(e=>Render.Draw.box(e.x,e.y,30,30,'#f00'));this.bs.forEach(b=>Render.Draw.box(b.x,b.y,5,10,'#ff0'));} }
+class GRhy extends GBase { start(){this.nts=[];this.lns=[Render.w*0.2,Render.w*0.4,Render.w*0.6,Render.w*0.8];} upd(){if(this.t++%Math.max(20,50-this.lv)==0)this.nts.push({l:Math.floor(Math.random()*4),y:0});this.nts.forEach(n=>n.y+=5);if(Input.l&&this.chk(0))this.score+=10;if(Input.d&&this.chk(1))this.score+=10;if(Input.u&&this.chk(2))this.score+=10;if(Input.r&&this.chk(3))this.score+=10;if(this.score>100+this.lv*20)this.win();} chk(l){let i=this.nts.findIndex(n=>n.l==l&&Math.abs(n.y-(Render.h-60))<60);if(i>-1){this.nts.splice(i,1);return 1}return 0} drw(){Render.Draw.clear('#111');this.lns.forEach(x=>Render.Draw.box(x-30,Render.h-60,60,10,'#555'));this.nts.forEach(n=>Render.Draw.box(this.lns[n.l]-25,n.y,50,20,'#0ff'));} }
+class GDodge extends GBase { start(){this.p={x:Render.w/2,y:Render.h/2};this.obs=[];} upd(){if(Input.u)this.p.y-=5;if(Input.d)this.p.y+=5;if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;if(this.t++%(15-this.lv*0.5)==0)this.obs.push({x:Math.random()*Render.w,y:0});this.obs.forEach(o=>{o.y+=5;if(Math.hypot(this.p.x-o.x,this.p.y-o.y)<20)this.fail()});this.score=this.t;if(this.score>300+this.lv*50)this.win();} drw(){Render.Draw.clear('#222');Render.Draw.player(this.p.x,this.p.y,'#fff');this.obs.forEach(o=>Render.Draw.circle(o.x,o.y,10,'#f00'));} }
+class GClick extends GBase { start(){this.req=20+this.lv*5;this.ores=[];} upd(){if(Input.a){Input.a=0;this.score++;this.ores.push({x:Math.random()*Render.w,y:Math.random()*Render.h,t:20});}if(this.score>=this.req)this.win();} drw(){Render.Draw.clear('#333');Render.Draw.text(`按 A (${this.score}/${this.req})`,Render.w/2,Render.h/2);this.ores.forEach(o=>{if(o.t-->0)Render.Draw.text("💎",o.x,o.y)})} }
+class GJumper extends GBase { start(){this.p={x:Render.w/2,y:Render.h-100,vy:0};this.pls=[{x:Render.w/2,y:Render.h-50}];} upd(){if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;this.p.y+=this.p.vy;this.p.vy+=0.5;if(this.t++%(40-this.lv)==0)this.pls.push({x:Math.random()*Render.w,y:0});this.pls.forEach(p=>{p.y+=2;if(this.p.vy>0&&Math.abs(this.p.x-p.x)<40&&Math.abs(this.p.y-p.y)<15)this.p.vy=-10});if(this.p.y>Render.h)this.fail();this.score=Math.floor(this.t/10);if(this.score>80+this.lv*20)this.win();} drw(){Render.Draw.clear('#87CEEB');Render.Draw.player(this.p.x,this.p.y,'#00f');this.pls.forEach(p=>Render.Draw.box(p.x-20,p.y,40,10,'#0f0'));} }
+class GMem extends GBase { start(){this.seq=[];this.pl=[];this.mode=0;this.add();} add(){this.seq.push(Math.floor(Math.random()*4));this.mode=0;this.tm=0;} upd(){if(this.mode==0){if(this.t++%(60-this.lv)==0){this.tm++;if(this.tm>this.seq.length)this.mode=1}}else{let k=-1;if(Input.u)k=0;if(Input.d)k=1;if(Input.l)k=2;if(Input.r)k=3;if(k!=-1){Input.u=Input.d=Input.l=Input.r=0;if(k==this.seq[this.pl.length]){this.pl.push(k);if(this.pl.length==this.seq.length){this.pl=[];this.score++;this.add();this.t=0}}else this.fail()}}if(this.score>=3+this.lv)this.win();} drw(){Render.Draw.clear('#222');let a=this.mode==0&&this.tm<this.seq.length?this.seq[this.tm]:null;Render.Draw.box(Render.w/2-40,100,80,80,a==0?'#fff':'#444');Render.Draw.box(Render.w/2-40,300,80,80,a==1?'#fff':'#444');Render.Draw.box(Render.w/2-140,200,80,80,a==2?'#fff':'#444');Render.Draw.box(Render.w/2+60,200,80,80,a==3?'#fff':'#444');} }
+
+const Games = [
+    {t:'g_maze', c:GMaze, i:"🗺️", bg:'#2c3e50', h:"WASD / Arrow Keys"}, 
+    {t:'g_space', c:GSpace, i:"🚀", bg:'#000', h:"Left/Right + A"},
+    {t:'g_snake', c:GSnake, i:"🐍", bg:'#254', h:"Arrow Keys"},
+    {t:'g_rhythm', c:GRhy, i:"🎵", bg:'#111', h:"D F J K"},
+    {t:'g_dodge', c:GDodge, i:"💢", bg:'#333', h:"Arrow Keys"},
+    {t:'g_click', c:GClick, i:"⛏️", bg:'#443', h:"Spam A"},
+    {t:'g_jump', c:GJumper, i:"🦘", bg:'#87CEEB', h:"Left/Right"},
+    {t:'g_break', c:GBreak, i:"🧱", bg:'#222', h:"Left/Right"},
+    {t:'g_mem', c:GMem, i:"🧠", bg:'#222', h:"Memorize & Repeat"},
+    {t:'g_race', c:GRace, i:"🏎️", bg:'#555', h:"Left/Right"},
+    {t:'g_horror', c:GPong, i:"🏓", bg:'#222', h:"Left/Right"}, 
+    {t:'g_puzzle', c:GDrop, i:"🏗️", bg:'#333', h:"A to Drop"}
+];
+
+const Eng = (function() {
+    let act=null, loopId, paused=false, gIdx=0;
+    
+    function start(idx, level=1) {
+        gIdx = idx;
+        const g = Games[idx];
+        const name = Lang.t(g.t);
+        const controls = g.c === GRhy ? "<span class='key-hint'>D</span><span class='key-hint'>F</span><span class='key-hint'>J</span><span class='key-hint'>K</span>" : 
+                         g.c === GClick ? "<span class='key-hint'>A (Space)</span>" : 
+                         "<span class='key-hint'>↑↓←→</span> <span class='key-hint'>A</span>";
+        
+        let savedLv = (Sys.user.progress && Sys.user.progress[idx]) ? Sys.user.progress[idx] : 0;
+        let startLv = level > 1 ? level : (savedLv > 0 ? savedLv + 1 : 1);
+        
+        Layer.modal(name, 
+            `${Lang.t('hud_level')} ${startLv}<br>
+             <p style="color:#aaa; font-size:14px; margin:10px 0;">${g.h}</p>
+             <div>${controls}</div>`, 
+            `<button class="btn btn-blue" onclick="Eng.realStart(${idx}, ${startLv})">${Lang.t('btn_continue')}</button>
+             ${savedLv > 0 && startLv > 1 ? `<button class="btn btn-red" onclick="Eng.realStart(${idx}, 1)">${Lang.t('btn_retry')}</button>` : ''}`
+        );
+    }
+
+    function realStart(idx, level) {
+        Layer.closeModal();
+        if(loopId) cancelAnimationFrame(loopId);
+        const g = Games[idx];
+        act = new g.c(g.cfg || {}, level);
+        act.start(); paused=false; 
+        document.getElementById('ctrl-std').style.display = (g.c === GRhy || g.c === GMem) ? 'none' : 'block';
+        document.getElementById('ctrl-rhy').style.display = (g.c === GRhy) ? 'block' : 'none';
+        Layer.sw('l-game');
+        loop();
+    }
+    
+    function loop() {
+        if(!paused && act) {
+            act.upd(); Render.Draw.clear(act.cfg?.bg); act.drw(); 
+            document.getElementById('g-lvl').innerText = act.lv; document.getElementById('g-scr').innerText = act.score;
+            document.getElementById('g-hp').innerText = Math.max(0, Math.floor(act.hp));
+        }
+        loopId = requestAnimationFrame(loop);
+    }
+    
+    function pause() { 
+        paused=!paused; 
+        if(paused) {
+            Layer.modal(Lang.t('modal_pause'), Lang.t('modal_rest'), 
+                `<button class="btn btn-blue" onclick="Eng.pause()">${Lang.t('btn_continue')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
+        } else Layer.closeModal(); 
+    }
+    
+    function over(win) { 
+        paused=true; 
+        if(win) {
+            let r = 50 + act.lv*10; Sys.user.coins += r; 
+            if(!Sys.user.progress) Sys.user.progress = {};
+            if(!Sys.user.progress[gIdx] || act.lv > Sys.user.progress[gIdx]) Sys.user.progress[gIdx] = act.lv;
+            Sys.save();
+            Layer.modal(Lang.t('msg_win'), `${Lang.t('msg_get_coin')}: ${r}`, `<button class="btn btn-green" onclick="Eng.next()">${Lang.t('btn_next')}</button> <button class="btn btn-blue" onclick="Eng.quit()">${Lang.t('btn_lobby')}</button>`);
+        } else {
+            Layer.modal(Lang.t('msg_fail'), "", `<button class="btn btn-blue" onclick="Eng.retry()">${Lang.t('btn_retry')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
+        }
+    }
+    
+    function next() { realStart(gIdx, act.lv+1); }
+    function retry() { realStart(gIdx, act.lv); }
+    function quit() { cancelAnimationFrame(loopId); act=null; Layer.sw('l-menu'); Layer.closeModal(); }
+    
+    return { start, realStart, pause, quit, over, next, retry };
+})();
+
+const Menu = {
+    init: () => { Menu.renderGames(); Menu.renderShop(); Menu.renderBag(); },
+    renderGames: () => { document.getElementById('p-games').innerHTML = Games.map((g,i)=>`<div class="game-card" onclick="Eng.start(${i})"><span class="icon-img">${g.i}</span><h4 data-t="${g.t}">${Lang.t(g.t)}</h4></div>`).join(''); },
+    renderShop: () => { document.getElementById('p-shop').innerHTML = Sys.items.map((it,i)=>`<div class="shop-item"><div style="font-size:24px;">${it.icon}</div><h4 data-t="${it.t}">${Lang.t(it.t)}</h4><p data-t="${it.d}">${Lang.t(it.d)}</p><button class="btn btn-gold" onclick="Sys.buy(${i})"><span data-t="shop_buy">${Lang.t('shop_buy')}</span> 💰 ${it.price}</button></div>`).join(''); },
+    renderBag: () => { 
+        const bag = document.getElementById('p-bag');
+        if(Sys.user.bag.length === 0) bag.innerHTML = `<div style='grid-column:1/-1; text-align:center; color:#666;' data-t="bag_empty">${Lang.t('bag_empty')}</div>`;
+        else bag.innerHTML = Sys.user.bag.map(it=>`<div class="shop-item" style="border-color:var(--primary)"><h4 data-t="${it.t}">${Lang.t(it.t)}</h4><p data-t="bag_equip">${Lang.t('bag_equip')}</p><p>${it.icon}</p></div>`).join('');
+    },
+    sw: (tab, el) => {
+        if(el) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
+        document.querySelectorAll('.content').forEach(c=>{c.classList.remove('active-grid'); c.style.display='none';});
+        const target = document.getElementById('p-'+tab);
+        target.style.display = 'grid'; 
+        if(tab === 'ai') target.style.display = 'block';
+        else target.classList.add('active-grid');
+    }
+};
+
+const AI = {
+    ask: () => {
+        const t = document.getElementById('chat-in').value;
+        const h = document.getElementById('chat-hist');
+        h.innerHTML += `<div style="color:#aaa; margin-top:5px;">Q: ${t}</div>`;
+        document.getElementById('chat-in').value = '';
+        setTimeout(()=> { h.innerHTML += `<div style="color:var(--primary); margin-top:5px;">AI: ${Lang.t('ai_welcome')}</div>`; h.scrollTop = h.scrollHeight; }, 500);
+    }
+};
+
+Render.resize();
+</script>
+</body>
+</html>
