@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Roblox V21 - 速度修復版</title>
+    <title>Roblox V22 - 核心修復版</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
         
+        /* --- 核心變數 --- */
         :root { 
             --bg-base: #121212; 
             --primary: #4dabf7; 
@@ -21,15 +22,13 @@
             --text-sub: #adb5bd;
         }
 
-        /* 黃金主題 */
+        /* 主題樣式 */
         body.theme-gold {
             --primary: #fcc419; --accent: #fff; --danger: #ff8787;
             --glass-bg: rgba(45, 38, 10, 0.95); --glass-border: rgba(255, 215, 0, 0.4); --card-bg: rgba(255, 215, 0, 0.1);
             --app-bg: radial-gradient(circle at center, #423005 0%, #1a1200 100%);
             --text-main: #fff9db; --text-sub: #e9ecef;
         }
-
-        /* 鑽石主題 */
         body.theme-diamond {
             --primary: #00d2ff; --accent: #e0faff; --danger: #ff6b6b;
             --glass-bg: rgba(10, 25, 45, 0.95); --glass-border: rgba(0, 210, 255, 0.5); --card-bg: rgba(0, 210, 255, 0.1);
@@ -56,6 +55,7 @@
         .layer.active { display: flex !important; }
         .interactive { pointer-events: auto; }
         
+        /* UI 組件 */
         .btn { 
             padding: 10px 20px; border: none; border-radius: 12px; font-weight: bold; 
             cursor: pointer; color: #212529; margin: 5px; font-size: 16px;
@@ -66,12 +66,27 @@
         .btn-gold { background: var(--accent); } .btn-green { background: var(--success); color: white; }
         .btn-lang { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--glass-border); padding: 5px 10px; font-size: 12px; }
 
-        #toast { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 12px 30px; border-radius: 50px; color: white; z-index: 9999; display: none; border: 1px solid var(--primary); font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap; }
+        /* Toast */
+        #toast {
+            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); padding: 12px 30px; border-radius: 50px;
+            color: white; z-index: 9999; display: none; border: 1px solid var(--primary);
+            font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap;
+        }
+        .toast-err { border-color: var(--danger) !important; color: #ffadad !important; }
 
         /* Login */
         #l-login { background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
-        .card { background: var(--glass-bg); padding: 40px; border-radius: 24px; border: 1px solid var(--glass-border); text-align: center; width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: background 0.5s; }
-        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 2px solid var(--glass-border); background: rgba(0,0,0,0.2); color: var(--text-main); outline: none; text-align: center; font-size: 18px; }
+        .card { 
+            background: var(--glass-bg); padding: 40px; border-radius: 24px; 
+            border: 1px solid var(--glass-border); text-align: center; width: 340px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: background 0.5s;
+        }
+        input { 
+            width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; 
+            border: 2px solid var(--glass-border); background: rgba(0,0,0,0.2); 
+            color: var(--text-main); outline: none; text-align: center; font-size: 18px; 
+        }
         input:focus { border-color: var(--primary); }
         
         /* Menu */
@@ -86,11 +101,13 @@
         .content { flex: 1; padding: 25px; overflow-y: auto; display: none; }
         .content.active-grid { display: grid; gap: 20px; align-content: start; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         
+        /* Game Card */
         .game-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
         .game-card:hover { transform: translateY(-5px); border-color: var(--primary); background: rgba(255,255,255,0.1); }
         .icon-img { font-size: 48px; display: block; margin-bottom: 10px; }
         .game-card h4 { margin: 5px 0; font-size: 18px; }
         
+        /* Shop Item */
         .shop-item { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
         .shop-item h4 { margin: 10px 0; color: var(--primary); font-size: 18px; }
         .shop-item p { font-size: 13px; color: var(--text-sub); margin-bottom: 15px; flex: 1; }
@@ -100,17 +117,18 @@
         .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: none; }
         .pill { background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); font-weight: bold; margin-right: 10px; display: inline-block; color: white; backdrop-filter: blur(4px); }
         
+        /* Controls */
         .controls { position: absolute; bottom: 30px; width: 100%; height: 180px; pointer-events: none; }
         .dpad { position: absolute; bottom: 0; left: 30px; width: 160px; height: 160px; }
         .actions { position: absolute; bottom: 0; right: 30px; width: 160px; height: 100px; }
         .c-btn { position: absolute; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); user-select: none; font-size: 24px; color: white; }
         .c-btn:active, .c-btn.press { transform: scale(0.9); background: var(--primary); color: #000; }
-        
         .b-u { top:0; left:55px; width:50px; height:50px; } .b-d { bottom:0; left:55px; width:50px; height:50px; }
         .b-l { top:55px; left:0; width:50px; height:50px; } .b-r { top:55px; right:0; width:50px; height:50px; }
         .b-a { right:0; bottom:10px; width:80px; height:80px; border-radius:50%; font-size:32px; }
         .b-b { right:90px; bottom:0; width:60px; height:60px; border-radius:50%; font-size:20px; }
 
+        /* Modal */
         #l-modal { background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
         .key-hint { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid rgba(255,255,255,0.3); margin: 0 2px; display: inline-block;}
         .gacha-anim { font-size: 60px; animation: pop 0.5s infinite alternate; }
@@ -128,7 +146,7 @@
         <div class="card">
             <button class="btn btn-lang" onclick="Lang.toggle()">English / 中文</button>
             <h1 style="color:var(--primary); margin:0 0 10px 0; font-size: 40px;" data-t="app_title">3D 冒險盒</h1>
-            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V21 速度修復版</p>
+            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V22 核心修復版</p>
             <input type="text" id="uid" data-ph="login_placeholder">
             <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="Sys.login()" data-t="login_btn">開始冒險</button>
         </div>
@@ -227,7 +245,7 @@ const Lang = (function() {
     let cur = localStorage.getItem('rbx_lang') || 'zh-TW';
     const data = {
         "zh-TW": {
-            app_title: "3D 冒險盒", app_subtitle: "V21 速度修復版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
+            app_title: "3D 冒險盒", app_subtitle: "V22 核心修復版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
             tab_games: "遊戲大廳", tab_shop: "道具商店", tab_bag: "我的背包", tab_ai: "AI 助手", btn_logout: "登出",
             ai_welcome: "AI: 嗨！需要攻略或賺錢建議嗎？", ai_placeholder: "例如：迷宮怎麼過？", btn_send: "發送",
             hud_score: "分數", hud_level: "關卡", hud_hp: "血量",
@@ -251,9 +269,9 @@ const Lang = (function() {
             i_key: "萬能鑰匙", id_key: "跳關道具"
         },
         "en": {
-            app_title: "3D Adventure Box", app_subtitle: "V21 Speed Fixed", login_placeholder: "Enter ID", login_btn: "Start",
+            app_title: "3D Adventure Box", app_subtitle: "V22 Core Fix", login_placeholder: "Enter ID", login_btn: "Start",
             tab_games: "Games", tab_shop: "Shop", tab_bag: "Inventory", tab_ai: "AI", btn_logout: "Logout",
-            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play?", btn_send: "Send",
+            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play maze?", btn_send: "Send",
             hud_score: "Score", hud_level: "Lv.", hud_hp: "HP",
             modal_pause: "Paused", modal_rest: "Rest", btn_continue: "Resume", btn_exit: "Exit",
             btn_retry: "Retry", btn_lobby: "Lobby", btn_next: "Next Level", msg_win: "Victory!", msg_fail: "Defeat",
@@ -303,7 +321,7 @@ const Sys = (function() {
 
     function login() {
         const id = document.getElementById('uid').value.trim() || "Guest";
-        const save = localStorage.getItem('rbx_v21_'+id);
+        const save = localStorage.getItem('rbx_v22_'+id);
         if(save) {
             user = JSON.parse(save);
             if(!user.progress) user.progress = {};
@@ -321,7 +339,7 @@ const Sys = (function() {
     }
     
     function logout() { save(); Layer.sw('l-login'); document.body.className=''; }
-    function save() { localStorage.setItem('rbx_v21_'+user.id, JSON.stringify(user)); updateUI(); }
+    function save() { localStorage.setItem('rbx_v22_'+user.id, JSON.stringify(user)); updateUI(); }
     
     function applyTheme() {
         document.body.className = '';
@@ -343,7 +361,7 @@ const Sys = (function() {
         let req = user.level * 1000;
         if(user.exp >= req) {
             user.exp -= req; user.level++;
-            user.coins += 500; // Level up reward
+            user.coins += 500; 
             toast(`Level Up! Lv.${user.level} (+500 Coins)`);
             updateUI();
         } else {
@@ -458,15 +476,12 @@ const Render = (function() {
         }
     };
     function shade(col, amt) {
-        try{
-            let usePound = false; if (col[0] == "#") { col = col.slice(1); usePound = true; }
-            let num = parseInt(col,16);
-            let r = (num >> 16) + amt; if (r > 255) r = 255; else if (r < 0) r = 0;
-            let g = ((num >> 8) & 0x00FF) + amt; if (g > 255) g = 255; else if (g < 0) g = 0;
-            let b = (num & 0x0000FF) + amt; if (b > 255) b = 255; else if (b < 0) b = 0;
-            const hex = (r<<16 | g<<8 | b).toString(16).padStart(6,'0');
-            return (usePound?"#":"") + hex;
-        }catch(e){return col}
+        let usePound = false; if (col[0] == "#") { col = col.slice(1); usePound = true; }
+        let num = parseInt(col,16);
+        let r = (num >> 16) + amt; if (r > 255) r = 255; else if (r < 0) r = 0;
+        let b = ((num >> 8) & 0x00FF) + amt; if (b > 255) b = 255; else if (b < 0) b = 0;
+        let g = (num & 0x0000FF) + amt; if (g > 255) g = 255; else if (g < 0) g = 0;
+        return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
     }
     return { resize, Draw, get w(){return W}, get h(){return H} };
 })();
@@ -545,10 +560,9 @@ const Games = [
     {t:'g_puzzle', c:GDrop, i:"🏗️", bg:'#333', h:"A to Drop"}
 ];
 
-/* --- 5. ENGINE & LOOP (fixed to prevent overlapping loops) --- */
 const Eng = (function() {
-    let act=null, loopId=null, paused=false, gIdx=0;
-
+    let act=null, loopId, paused=false, gIdx=0;
+    
     function stopLoop() {
         if(loopId) { cancelAnimationFrame(loopId); loopId = null; }
     }
@@ -583,23 +597,17 @@ const Eng = (function() {
         document.getElementById('ctrl-std').style.display = (g.c === GRhy || g.c === GMem) ? 'none' : 'block';
         document.getElementById('ctrl-rhy').style.display = (g.c === GRhy) ? 'block' : 'none';
         Layer.sw('l-game');
-
-        // start frame loop safely
-        const frame = () => {
-            if(paused || !act) { loopId = null; return; }
-            try{
-                act.t++;
-                act.upd(); 
-                Render.Draw.clear(act.cfg?.bg);
-                act.drw(); 
-                document.getElementById('g-lvl').innerText = act.lv; document.getElementById('g-scr').innerText = act.score;
-                document.getElementById('g-hp').innerText = Math.max(0, Math.floor(act.hp));
-            }catch(e){ console.error('Game loop error', e); }
-            loopId = requestAnimationFrame(frame);
-        };
-        // ensure only one RAF loop runs
-        if(loopId) cancelAnimationFrame(loopId);
-        loopId = requestAnimationFrame(frame);
+        loop();
+    }
+    
+    function loop() {
+        if(paused) return;
+        if(act) {
+            act.upd(); Render.Draw.clear(act.cfg?.bg); act.drw(); 
+            document.getElementById('g-lvl').innerText = act.lv; document.getElementById('g-scr').innerText = act.score;
+            document.getElementById('g-hp').innerText = Math.max(0, Math.floor(act.hp));
+        }
+        loopId = requestAnimationFrame(loop);
     }
     
     function pause() { 
@@ -610,18 +618,9 @@ const Eng = (function() {
     }
     
     function resume() {
-        if(!act) return;
         paused = false;
         Layer.closeModal();
-        // restart loop if not running
-        if(!loopId) {
-            const frame = () => {
-                if(paused || !act) { loopId = null; return; }
-                try{ act.t++; act.upd(); Render.Draw.clear(act.cfg?.bg); act.drw(); document.getElementById('g-lvl').innerText = act.lv; document.getElementById('g-scr').innerText = act.score; document.getElementById('g-hp').innerText = Math.max(0, Math.floor(act.hp)); }catch(e){console.error(e);} 
-                loopId = requestAnimationFrame(frame);
-            };
-            loopId = requestAnimationFrame(frame);
-        }
+        loop();
     }
     
     function over(win) { 
@@ -634,15 +633,48 @@ const Eng = (function() {
             Sys.save();
             Layer.modal(Lang.t('msg_win'), `${Lang.t('msg_get_coin')}: ${r}`, `<button class="btn btn-green" onclick="Eng.next()">${Lang.t('btn_next')}</button> <button class="btn btn-blue" onclick="Eng.quit()">${Lang.t('btn_lobby')}</button>`);
         } else {
-            Layer.modal(Lang.t('msg_fail'), "", `<button class="btn btn-blue" onclick="Eng.retry()">${Lang.t('btn_retry')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
+            let reviveBtn = (Sys.user.gems >= 5 || Sys.hasItem('revive')) ? `<button class="btn btn-gold" onclick="Eng.revive()">💎 ${Lang.t('i_rev')} (${Sys.hasItem('revive')?'Item':'5 Gems'})</button>` : '';
+            Layer.modal(Lang.t('msg_fail'), "", `${reviveBtn} <button class="btn btn-blue" onclick="Eng.retry()">${Lang.t('btn_retry')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
         }
     }
     
     function next() { realStart(gIdx, act.lv+1); }
     function retry() { realStart(gIdx, act.lv); }
+    
+    function revive() {
+        // Check item first
+        let itemIdx = Sys.user.bag.findIndex(i => i.id === 'revive');
+        if(itemIdx > -1) {
+            Sys.user.bag.splice(itemIdx, 1);
+            Sys.toast(Lang.t('i_rev') + " Used!");
+        } else if (Sys.user.gems >= 5) {
+            Sys.user.gems -= 5;
+            Sys.toast("-5 Gems");
+        } else {
+            return Sys.toast(Lang.t('toast_no_money'), true);
+        }
+        Sys.save(); paused=false; act.hp=100; Layer.closeModal(); loop();
+    }
+
+    function skip() {
+        // Check item first (key)
+        let itemIdx = Sys.user.bag.findIndex(i => i.id === 'key');
+        if(itemIdx > -1) {
+            Sys.user.bag.splice(itemIdx, 1);
+            Sys.toast(Lang.t('i_key') + " Used!");
+            over(true);
+        } else if (Sys.user.gems >= 10) {
+            Sys.user.gems -= 10;
+            Sys.toast("-10 Gems");
+            over(true);
+        } else {
+            return Sys.toast(Lang.t('toast_no_money'), true);
+        }
+    }
+
     function quit() { stopLoop(); act=null; Layer.sw('l-menu'); Layer.closeModal(); }
     
-    return { start, realStart, pause, resume, quit, over, next, retry };
+    return { start, realStart, pause, resume, quit, over, next, retry, revive, skip };
 })();
 
 const Menu = {
@@ -668,7 +700,6 @@ const AI = {
     ask: () => {
         const t = document.getElementById('chat-in').value;
         const h = document.getElementById('chat-hist');
-        if(!t) return;
         h.innerHTML += `<div style="color:#aaa; margin-top:5px;">Q: ${t}</div>`;
         document.getElementById('chat-in').value = '';
         setTimeout(()=> { h.innerHTML += `<div style="color:var(--primary); margin-top:5px;">AI: ${Lang.t('ai_welcome')}</div>`; h.scrollTop = h.scrollHeight; }, 500);
