@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Roblox V22 - 核心修復版</title>
+    <title>Roblox V23 - 經驗值修復版</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
         
@@ -14,6 +14,7 @@
             --accent: #ffd43b; 
             --danger: #ff6b6b; 
             --success: #51cf66; 
+            --exp-color: #a55eea; /* 紫色經驗條 */
             --glass-bg: rgba(30, 32, 35, 0.95);
             --glass-border: rgba(255, 255, 255, 0.1);
             --card-bg: rgba(255, 255, 255, 0.05);
@@ -24,13 +25,13 @@
 
         /* 主題樣式 */
         body.theme-gold {
-            --primary: #fcc419; --accent: #fff; --danger: #ff8787;
+            --primary: #fcc419; --accent: #fff; --danger: #ff8787; --exp-color: #9c27b0;
             --glass-bg: rgba(45, 38, 10, 0.95); --glass-border: rgba(255, 215, 0, 0.4); --card-bg: rgba(255, 215, 0, 0.1);
             --app-bg: radial-gradient(circle at center, #423005 0%, #1a1200 100%);
             --text-main: #fff9db; --text-sub: #e9ecef;
         }
         body.theme-diamond {
-            --primary: #00d2ff; --accent: #e0faff; --danger: #ff6b6b;
+            --primary: #00d2ff; --accent: #e0faff; --danger: #ff6b6b; --exp-color: #00a8ff;
             --glass-bg: rgba(10, 25, 45, 0.95); --glass-border: rgba(0, 210, 255, 0.5); --card-bg: rgba(0, 210, 255, 0.1);
             --app-bg: radial-gradient(circle at center, #00284d 0%, #000814 100%);
             --text-main: #e3fafc; --text-sub: #c5f6fa;
@@ -117,6 +118,11 @@
         .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: none; }
         .pill { background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); font-weight: bold; margin-right: 10px; display: inline-block; color: white; backdrop-filter: blur(4px); }
         
+        /* EXP Bar in Menu */
+        .exp-container { width: 120px; height: 16px; background: rgba(0,0,0,0.4); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); position: relative; margin-top: 4px;}
+        .exp-fill { height: 100%; width: 0%; background: var(--exp-color); transition: width 0.5s; }
+        .exp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; color: white; font-weight: bold; text-shadow: 0 1px 2px black; }
+
         /* Controls */
         .controls { position: absolute; bottom: 30px; width: 100%; height: 180px; pointer-events: none; }
         .dpad { position: absolute; bottom: 0; left: 30px; width: 160px; height: 160px; }
@@ -141,25 +147,28 @@
     <canvas id="cvs"></canvas>
     <div id="toast">提示</div>
 
-    <!-- Login -->
+    <!-- 1. Login -->
     <div id="l-login" class="layer active interactive">
         <div class="card">
             <button class="btn btn-lang" onclick="Lang.toggle()">English / 中文</button>
             <h1 style="color:var(--primary); margin:0 0 10px 0; font-size: 40px;" data-t="app_title">3D 冒險盒</h1>
-            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V22 核心修復版</p>
+            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V23 經驗值修復版</p>
             <input type="text" id="uid" data-ph="login_placeholder">
             <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="Sys.login()" data-t="login_btn">開始冒險</button>
         </div>
     </div>
 
-    <!-- Menu -->
+    <!-- 2. Menu -->
     <div id="l-menu" class="layer interactive">
         <div class="top-bar">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div style="width:40px; height:40px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>
                 <div>
                     <div style="font-weight:bold; font-size:18px;"><span id="m-name">Guest</span> <span style="font-size:12px; color:var(--text-sub);">(Lv.<span id="m-lvl">1</span>)</span></div>
-                    <div style="font-size:12px; color:var(--text-sub);">Player ID</div>
+                    <div class="exp-container">
+                        <div class="exp-fill" id="m-exp-bar"></div>
+                        <div class="exp-text"><span id="m-exp-val">0</span>%</div>
+                    </div>
                 </div>
             </div>
             <div style="display:flex; gap:20px; font-size:18px; font-weight:bold; background:rgba(0,0,0,0.3); padding:8px 20px; border-radius:50px; border:1px solid var(--glass-border);">
@@ -193,7 +202,7 @@
         </div>
     </div>
 
-    <!-- HUD -->
+    <!-- 3. Game HUD -->
     <div id="l-game" class="layer">
         <div class="hud">
             <div>
@@ -229,7 +238,7 @@
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- 4. Modal -->
     <div id="l-modal" class="layer interactive">
         <div class="card" style="width: 420px; max-width:90%;">
             <h2 id="mo-title" style="color:var(--primary); margin-top:0; font-size:28px;">標題</h2>
@@ -240,12 +249,12 @@
 </div>
 
 <script>
-/* --- 0. LANG --- */
+/* --- 0. LANGUAGE SYSTEM --- */
 const Lang = (function() {
     let cur = localStorage.getItem('rbx_lang') || 'zh-TW';
     const data = {
         "zh-TW": {
-            app_title: "3D 冒險盒", app_subtitle: "V22 核心修復版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
+            app_title: "3D 冒險盒", app_subtitle: "V23 經驗值修復版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
             tab_games: "遊戲大廳", tab_shop: "道具商店", tab_bag: "我的背包", tab_ai: "AI 助手", btn_logout: "登出",
             ai_welcome: "AI: 嗨！需要攻略或賺錢建議嗎？", ai_placeholder: "例如：迷宮怎麼過？", btn_send: "發送",
             hud_score: "分數", hud_level: "關卡", hud_hp: "血量",
@@ -269,9 +278,9 @@ const Lang = (function() {
             i_key: "萬能鑰匙", id_key: "跳關道具"
         },
         "en": {
-            app_title: "3D Adventure Box", app_subtitle: "V22 Core Fix", login_placeholder: "Enter ID", login_btn: "Start",
+            app_title: "3D Adventure Box", app_subtitle: "V23 EXP Fix", login_placeholder: "Enter ID", login_btn: "Start",
             tab_games: "Games", tab_shop: "Shop", tab_bag: "Inventory", tab_ai: "AI", btn_logout: "Logout",
-            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play maze?", btn_send: "Send",
+            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play?", btn_send: "Send",
             hud_score: "Score", hud_level: "Lv.", hud_hp: "HP",
             modal_pause: "Paused", modal_rest: "Rest", btn_continue: "Resume", btn_exit: "Exit",
             btn_retry: "Retry", btn_lobby: "Lobby", btn_next: "Next Level", msg_win: "Victory!", msg_fail: "Defeat",
@@ -311,7 +320,7 @@ const Sys = (function() {
         {id:'gem_pack', t:'i_gem', d:'id_gem', price:500, type:'gacha', icon:'💎'},
         {id:'magnet', t:'i_mag', d:'id_mag', price:800, type:'passive', val:1, icon:'🧲'},
         {id:'potion_exp', t:'i_exp', d:'id_exp', price:1000, type:'use', val:500, icon:'🧪'},
-        {id:'revive', t:'i_rev', d:'id_rev', price:100, type:'item', val:1, icon:'✝️'},
+        {id:'revive', t:'i_rev', d:'id_rev', price:1500, type:'item', val:1, icon:'✝️'},
         {id:'key', t:'i_key', d:'id_key', price:100, type:'key', val:1, icon:'🔑'},
         {id:'spd1', t:'i_spd', d:'id_spd', price:200, type:'spd', val:1, icon:'👟'},
         {id:'hp1', t:'i_hp', d:'id_hp', price:300, type:'hp', val:20, icon:'❤️'},
@@ -321,11 +330,12 @@ const Sys = (function() {
 
     function login() {
         const id = document.getElementById('uid').value.trim() || "Guest";
-        const save = localStorage.getItem('rbx_v22_'+id);
+        const save = localStorage.getItem('rbx_v23_'+id);
         if(save) {
             user = JSON.parse(save);
             if(!user.progress) user.progress = {};
             if(!user.level) user.level = 1;
+            if(user.exp === undefined) user.exp = 0;
             toast(Lang.t('toast_welcome') + `, ${user.id}！`);
         } else {
             user = { ...user, id, coins:1000, gems:20, progress:{} };
@@ -339,7 +349,7 @@ const Sys = (function() {
     }
     
     function logout() { save(); Layer.sw('l-login'); document.body.className=''; }
-    function save() { localStorage.setItem('rbx_v22_'+user.id, JSON.stringify(user)); updateUI(); }
+    function save() { localStorage.setItem('rbx_v23_'+user.id, JSON.stringify(user)); updateUI(); }
     
     function applyTheme() {
         document.body.className = '';
@@ -352,6 +362,12 @@ const Sys = (function() {
         document.getElementById('m-lvl').innerText = user.level;
         document.getElementById('m-coin').innerText = user.coins;
         document.getElementById('m-gem').innerText = user.gems;
+        
+        // Exp Bar
+        const req = user.level * 1000;
+        const pct = Math.min(100, (user.exp / req) * 100).toFixed(1);
+        document.getElementById('m-exp-bar').style.width = pct + '%';
+        document.getElementById('m-exp-val').innerText = pct;
     }
     
     function hasItem(id) { return user.bag.some(i => i.id === id); }
@@ -363,10 +379,11 @@ const Sys = (function() {
             user.exp -= req; user.level++;
             user.coins += 500; 
             toast(`Level Up! Lv.${user.level} (+500 Coins)`);
-            updateUI();
+            save();
         } else {
             toast(`+${amount} EXP`);
         }
+        updateUI();
     }
 
     function buy(idx) {
@@ -381,7 +398,7 @@ const Sys = (function() {
                 user.gems += amt;
                 Layer.modal("Gacha", `💎 +${amt}`, `<button class="btn btn-blue" onclick="Layer.closeModal()">OK</button>`);
             } else if(it.type === 'use') {
-                if(it.id === 'potion_exp') addExp(it.val);
+                if(it.id === 'potion_exp') { addExp(it.val); }
             } else if(it.type === 'key' || it.type === 'item') {
                  user.bag.push(it);
                  toast(`${Lang.t('toast_bought')}: ${Lang.t(it.t)}`);
@@ -511,7 +528,6 @@ class GSnake extends GBase {
             let h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; 
             if(h.x<0||h.x>Render.w/this.sz||h.y<0||h.y>Render.h/this.sz||this.sn.some(s=>s.x===h.x&&s.y===h.y)) return this.fail(); 
             this.sn.unshift(h); 
-            // Magnet Effect
             let dist = this.hasMagnet ? 2 : 0;
             if(Math.abs(h.x-this.fd.x)<=dist && Math.abs(h.y-this.fd.y)<=dist) { 
                 this.score+=10; this.fd={x:Math.floor(Math.random()*(Render.w/this.sz)), y:Math.floor(Math.random()*(Render.h/this.sz))}; 
@@ -531,7 +547,6 @@ class GRhy extends GBase {
     upd(){
         if(this.t++%Math.max(20,50-this.lv)==0)this.nts.push({l:Math.floor(Math.random()*4),y:0});
         this.nts.forEach(n=>n.y+=5);
-        // Magnet Effect
         let tol = this.hasMagnet ? 80 : 60;
         if(Input.l&&this.chk(0,tol))this.score+=10;if(Input.d&&this.chk(1,tol))this.score+=10;
         if(Input.u&&this.chk(2,tol))this.score+=10;if(Input.r&&this.chk(3,tol))this.score+=10;
@@ -630,6 +645,7 @@ const Eng = (function() {
             let r = 50 + act.lv*10; Sys.user.coins += r; 
             if(!Sys.user.progress) Sys.user.progress = {};
             if(!Sys.user.progress[gIdx] || act.lv > Sys.user.progress[gIdx]) Sys.user.progress[gIdx] = act.lv;
+            Sys.addExp(100);
             Sys.save();
             Layer.modal(Lang.t('msg_win'), `${Lang.t('msg_get_coin')}: ${r}`, `<button class="btn btn-green" onclick="Eng.next()">${Lang.t('btn_next')}</button> <button class="btn btn-blue" onclick="Eng.quit()">${Lang.t('btn_lobby')}</button>`);
         } else {
@@ -642,7 +658,6 @@ const Eng = (function() {
     function retry() { realStart(gIdx, act.lv); }
     
     function revive() {
-        // Check item first
         let itemIdx = Sys.user.bag.findIndex(i => i.id === 'revive');
         if(itemIdx > -1) {
             Sys.user.bag.splice(itemIdx, 1);
@@ -657,7 +672,6 @@ const Eng = (function() {
     }
 
     function skip() {
-        // Check item first (key)
         let itemIdx = Sys.user.bag.findIndex(i => i.id === 'key');
         if(itemIdx > -1) {
             Sys.user.bag.splice(itemIdx, 1);
