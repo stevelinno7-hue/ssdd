@@ -290,14 +290,14 @@ window.Sys = {
         this.save();
     },
     gacha: function() {
-        if(this.u.coins < 200) return window.toast("金幣不足 ($200)", true);
-        this.u.coins -= 200;
+        if(this.u.coins < 500) return window.toast("金幣不足 ($500)", true);
+        this.u.coins -= 500;
         var r=Math.random(), msg="", icon="";
         if(r<0.35) { var c=100+Math.floor(Math.random()*100); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
-        else if(r<0.55) { var g=10+Math.floor(Math.random()*30); this.u.gems+=g; msg=`+${g} 寶石`; icon="💎"; }
+        else if(r<0.55) { var g=10+Math.floor(Math.random()*30); this.u.coins+=g; msg=`+${g} 寶石`; icon="💎"; }
         else { 
             var it = this.items[Math.floor(Math.random()*this.items.length)];
-            if(it.type!=='con' && this.has(it.id)) { this.u.coins+=500; msg="重複補償 $500"; icon="🪙"; }
+            if(it.type!=='con' && this.has(it.id)) { this.u.coins+=100; msg="重複補償 $100"; icon="🪙"; }
             else { this.u.bag.push(it.id); msg=it.t; icon=it.i; if(it.type==='skin') this.useBagItem(it.id); } 
         }
         document.getElementById('gm-glass').innerText = icon;
