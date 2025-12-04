@@ -293,7 +293,7 @@ window.Sys = {
         if(this.u.coins < 200) return window.toast("金幣不足 ($200)", true);
         this.u.coins -= 200;
         var r=Math.random(), msg="", icon="";
-        if(r<0.35) { var c=100+Math.floor(Math.random()*200); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
+        if(r<0.35) { var c=100+Math.floor(Math.random()*100); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
         else if(r<0.55) { var g=10+Math.floor(Math.random()*30); this.u.gems+=g; msg=`+${g} 寶石`; icon="💎"; }
         else { 
             var it = this.items[Math.floor(Math.random()*this.items.length)];
