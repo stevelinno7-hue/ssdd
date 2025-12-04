@@ -3,724 +3,604 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Roblox V23 - 經驗值修復版</title>
+    <title>Roblox V64 - Logic Lock Fix</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
         
-        /* --- 核心變數 --- */
         :root { 
-            --bg-base: #121212; 
-            --primary: #4dabf7; 
-            --accent: #ffd43b; 
-            --danger: #ff6b6b; 
-            --success: #51cf66; 
-            --exp-color: #a55eea; /* 紫色經驗條 */
-            --glass-bg: rgba(30, 32, 35, 0.95);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --app-bg: radial-gradient(circle at center, #1a1b1e 0%, #000000 100%);
-            --text-main: #ffffff;
-            --text-sub: #adb5bd;
+            --bg: #212529; --panel: #2c3035; 
+            --primary: #4dabf7; --accent: #ffd43b; 
+            --danger: #ff6b6b; --success: #51cf66; 
+            --text: #e9ecef; --text-sub: #adb5bd;
+            --font: 'Fredoka', sans-serif;
+            --shadow-flat: 0 4px 6px rgba(0,0,0,0.3);
+            --grad-card: linear-gradient(145deg, #32363b, #2a2d32);
+            --bg-grad: radial-gradient(circle at center, #2c2e33 0%, #111 100%);
         }
 
-        /* 主題樣式 */
-        body.theme-gold {
-            --primary: #fcc419; --accent: #fff; --danger: #ff8787; --exp-color: #9c27b0;
-            --glass-bg: rgba(45, 38, 10, 0.95); --glass-border: rgba(255, 215, 0, 0.4); --card-bg: rgba(255, 215, 0, 0.1);
-            --app-bg: radial-gradient(circle at center, #423005 0%, #1a1200 100%);
-            --text-main: #fff9db; --text-sub: #e9ecef;
-        }
-        body.theme-diamond {
-            --primary: #00d2ff; --accent: #e0faff; --danger: #ff6b6b; --exp-color: #00a8ff;
-            --glass-bg: rgba(10, 25, 45, 0.95); --glass-border: rgba(0, 210, 255, 0.5); --card-bg: rgba(0, 210, 255, 0.1);
-            --app-bg: radial-gradient(circle at center, #00284d 0%, #000814 100%);
-            --text-main: #e3fafc; --text-sub: #c5f6fa;
-        }
+        /* --- THEMES (10 Variants) --- */
+        body.theme-gold { --primary:#ffd43b; --bg:#1a1500; --panel:#2a2205; --bg-grad:radial-gradient(circle,#423608 0%,#000 100%); }
+        body.theme-diamond { --primary:#00d4ff; --bg:#001a29; --panel:#002840; --bg-grad:radial-gradient(circle,#062b42 0%,#000 100%); }
+        body.theme-dark { --primary:#868e96; --bg:#000000; --panel:#111111; --bg-grad:linear-gradient(to bottom,#222,#000); --accent:#fff; }
+        body.theme-neon { --primary:#f06595; --bg:#220011; --panel:#330022; --bg-grad:radial-gradient(circle,#550033 0%,#110011 100%); --accent:#845ef7; }
+        body.theme-retro { --primary:#ff922b; --bg:#2d1b0e; --panel:#442211; --bg-grad:repeating-linear-gradient(45deg,#2d1b0e,#2d1b0e 10px,#332211 10px,#332211 20px); font-family:monospace; }
+        body.theme-forest { --primary:#51cf66; --bg:#0e2e1b; --panel:#133b24; --bg-grad:linear-gradient(135deg,#0e2e1b,#081f12); }
+        body.theme-fire { --primary:#ff6b6b; --bg:#2e0e0e; --panel:#3b1313; --bg-grad:radial-gradient(circle,#551111 0%,#220000 100%); }
+        body.theme-pink { --primary:#faa2c1; --bg:#2e0e1e; --panel:#3b1326; --bg-grad:radial-gradient(circle,#551133 0%,#220011 100%); }
+        body.theme-matrix { --primary:#0f0; --bg:#000; --panel:#001100; --text:#0f0; --text-sub:#0a0; --bg-grad:#000; font-family:monospace; }
+        body.theme-sky { --primary:#74c0fc; --bg:#0e2e42; --panel:#133b55; --bg-grad:linear-gradient(to top,#0e2e42,#1c7ed6); }
 
-        body { 
-            margin: 0; background: #000; color: var(--text-main); 
-            font-family: 'Fredoka', sans-serif; 
-            overflow: hidden; touch-action: none; user-select: none; 
-            display: flex; justify-content: center; align-items: center; height: 100vh; 
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; height: 100vh; display: flex; flex-direction: column; transition: 0.3s; background-image: var(--bg-grad); }
         
-        #app { 
-            position: relative; width: 100%; max-width: 1024px; height: 100%; max-height: 768px; 
-            background: var(--app-bg); overflow: hidden; display: flex; flex-direction: column; 
-            box-shadow: 0 0 60px rgba(0,0,0,0.8); border-radius: 24px; 
-            border: 1px solid var(--glass-border); transition: background 0.5s ease;
-        }
-        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+        .layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; background: var(--bg-grad); z-index: 10; flex-direction: column; }
+        .layer.active { display: flex; }
         
-        .layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none !important; flex-direction:column; }
-        .layer.active { display: flex !important; }
-        .interactive { pointer-events: auto; }
-        
-        /* UI 組件 */
-        .btn { 
-            padding: 10px 20px; border: none; border-radius: 12px; font-weight: bold; 
-            cursor: pointer; color: #212529; margin: 5px; font-size: 16px;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: all 0.1s; 
-        }
-        .btn:active { transform: translateY(4px); box-shadow: none; }
-        .btn-blue { background: var(--primary); } .btn-red { background: var(--danger); color: white; } 
-        .btn-gold { background: var(--accent); } .btn-green { background: var(--success); color: white; }
-        .btn-lang { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--glass-border); padding: 5px 10px; font-size: 12px; }
-
-        /* Toast */
-        #toast {
-            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.9); padding: 12px 30px; border-radius: 50px;
-            color: white; z-index: 9999; display: none; border: 1px solid var(--primary);
-            font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap;
-        }
-        .toast-err { border-color: var(--danger) !important; color: #ffadad !important; }
+        button { background: #373a40; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: var(--shadow-flat); font-family: var(--font); transition: 0.1s; }
+        button:active { transform: translateY(2px); opacity: 0.8; }
+        button.primary { background: var(--primary); color: #000; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
         /* Login */
-        #l-login { background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
-        .card { 
-            background: var(--glass-bg); padding: 40px; border-radius: 24px; 
-            border: 1px solid var(--glass-border); text-align: center; width: 340px; 
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: background 0.5s;
-        }
-        input { 
-            width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; 
-            border: 2px solid var(--glass-border); background: rgba(0,0,0,0.2); 
-            color: var(--text-main); outline: none; text-align: center; font-size: 18px; 
-        }
-        input:focus { border-color: var(--primary); }
+        #l-login { justify-content: center; align-items: center; text-align: center; }
+        .box { background: var(--panel); padding: 2.5rem; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
+        input { background: rgba(0,0,0,0.3); border: none; color: #fff; padding: 15px; width: 100%; border-radius: 12px; margin: 20px 0; text-align: center; font-size: 1.1rem; }
         
         /* Menu */
-        #l-menu { background: var(--glass-bg); z-index: 50; transition: background 0.5s; }
-        .top-bar { padding: 15px 25px; display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); align-items: center; border-bottom: 1px solid var(--glass-border); }
-        .main-view { flex: 1; display: flex; overflow: hidden; }
-        .sidebar { width: 200px; padding: 15px; background: rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--glass-border); }
-        .tab { padding: 12px 15px; cursor: pointer; color: var(--text-sub); border-radius: 10px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
-        .tab:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-        .tab.active { background: var(--primary); color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        
-        .content { flex: 1; padding: 25px; overflow-y: auto; display: none; }
-        .content.active-grid { display: grid; gap: 20px; align-content: start; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-        
-        /* Game Card */
-        .game-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
-        .game-card:hover { transform: translateY(-5px); border-color: var(--primary); background: rgba(255,255,255,0.1); }
-        .icon-img { font-size: 48px; display: block; margin-bottom: 10px; }
-        .game-card h4 { margin: 5px 0; font-size: 18px; }
-        
-        /* Shop Item */
-        .shop-item { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .shop-item h4 { margin: 10px 0; color: var(--primary); font-size: 18px; }
-        .shop-item p { font-size: 13px; color: var(--text-sub); margin-bottom: 15px; flex: 1; }
+        header { padding: 12px 15px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; z-index: 20; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .u-info { display: flex; flex-direction: column; gap: 4px; }
+        .res { display: flex; gap: 10px; font-size: 0.9rem; }
+        .res-box { background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 20px; display:flex; align-items:center; gap:6px; border: 1px solid rgba(255,255,255,0.1); }
+        .exp-bar { width: 80px; height: 6px; background: #111; border-radius: 3px; overflow: hidden; }
+        .exp-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.5s; }
 
-        /* HUD */
-        #l-game { z-index: 10; }
-        .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: none; }
-        .pill { background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); font-weight: bold; margin-right: 10px; display: inline-block; color: white; backdrop-filter: blur(4px); }
+        .nav { display: flex; background: rgba(0,0,0,0.2); padding: 10px; gap: 8px; overflow-x: auto; flex-shrink: 0; }
+        .tab { padding: 8px 16px; border-radius: 12px; color: var(--text-sub); cursor: pointer; white-space: nowrap; flex: 1; text-align: center; font-size: 0.9rem; border: 1px solid transparent; transition: 0.2s; }
+        .tab.active { background: var(--panel); color: var(--primary); font-weight: bold; border-color: rgba(255,255,255,0.1); }
         
-        /* EXP Bar in Menu */
-        .exp-container { width: 120px; height: 16px; background: rgba(0,0,0,0.4); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); position: relative; margin-top: 4px;}
-        .exp-fill { height: 100%; width: 0%; background: var(--exp-color); transition: width 0.5s; }
-        .exp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; color: white; font-weight: bold; text-shadow: 0 1px 2px black; }
+        #content { flex: 1; overflow-y: auto; padding: 15px; position: relative; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; padding-bottom: 80px; width: 100%; }
+        .card { background: var(--grad-card); border-radius: 16px; padding: 12px 8px; text-align: center; cursor: pointer; box-shadow: var(--shadow-flat); border: 1px solid rgba(255,255,255,0.03); height: auto; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .card:active { transform: scale(0.96); }
+        .c-icon { font-size: 2.2rem; margin-bottom: 8px; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.4)); }
+        .c-txt { font-size: 0.85rem; font-weight: 600; color: var(--text); line-height: 1.3; width: 100%; white-space: normal; word-wrap: break-word; margin-bottom: 5px; }
+        .item-tag { position: absolute; top:5px; right:5px; font-size:0.6rem; padding:2px 6px; border-radius:4px; font-weight:bold; }
+        .tag-perm { background: var(--primary); color:#000; } .tag-con { background: var(--accent); color:#000; } .tag-skin { background: #e64980; color:#fff; }
 
-        /* Controls */
-        .controls { position: absolute; bottom: 30px; width: 100%; height: 180px; pointer-events: none; }
-        .dpad { position: absolute; bottom: 0; left: 30px; width: 160px; height: 160px; }
-        .actions { position: absolute; bottom: 0; right: 30px; width: 160px; height: 100px; }
-        .c-btn { position: absolute; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); user-select: none; font-size: 24px; color: white; }
-        .c-btn:active, .c-btn.press { transform: scale(0.9); background: var(--primary); color: #000; }
-        .b-u { top:0; left:55px; width:50px; height:50px; } .b-d { bottom:0; left:55px; width:50px; height:50px; }
-        .b-l { top:55px; left:0; width:50px; height:50px; } .b-r { top:55px; right:0; width:50px; height:50px; }
-        .b-a { right:0; bottom:10px; width:80px; height:80px; border-radius:50%; font-size:32px; }
-        .b-b { right:90px; bottom:0; width:60px; height:60px; border-radius:50%; font-size:20px; }
+        /* Gacha */
+        #p-gacha { display:none; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; min-height: 400px; }
+        .gacha-machine { width: 240px; height: 320px; background: linear-gradient(180deg, #ff6b6b, #c92a2a); border-radius: 40px 40px 20px 20px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; border: 4px solid rgba(255,255,255,0.1); }
+        .gm-glass { width: 140px; height: 140px; background: #333; border-radius: 50%; border: 5px solid #a61e4d; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; box-shadow: inset 0 0 20px #000; }
+        
+        #p-ai { display: none; flex-direction: column; height: 100%; }
+        .chat-hist { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px 16px; border-radius: 16px; max-width: 85%; font-size: 0.95rem; line-height: 1.5; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
+        .m-ai { background: #343a40; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .m-usr { background: var(--primary); align-self: flex-end; color: #000; border-bottom-right-radius: 2px; }
 
-        /* Modal */
-        #l-modal { background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
-        .key-hint { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid rgba(255,255,255,0.3); margin: 0 2px; display: inline-block;}
-        .gacha-anim { font-size: 60px; animation: pop 0.5s infinite alternate; }
-        @keyframes pop { from{transform:scale(1);} to{transform:scale(1.2);} }
+        /* Game HUD */
+        #g-hud { position: absolute; top: 0; left: 0; width: 100%; padding: 20px 25px; display: flex; justify-content: space-between; pointer-events: none; z-index: 20; background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%); }
+        .g-buffs { display: flex; gap: 5px; margin-top: 5px; }
+        .buff { width: 26px; height: 26px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.3); }
+        canvas { display: block; width: 100%; height: 100%; background: #111; }
+        
+        #btn-pause { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: rgba(255,255,255,0.15); border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); display: flex; justify-content: center; align-items: center; z-index: 30; backdrop-filter: blur(5px); cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 1.2rem; }
+        #btn-pause:active { transform: translateX(-50%) scale(0.9); background: var(--primary); color:#000; }
+
+        #g-ctrl { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; pointer-events: none; z-index: 20; display: flex; justify-content: space-between; padding: 20px; padding-bottom: 40px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); }
+        .btn-c { width: 50px; height: 50px; background: rgba(255,255,255,0.15); border-radius: 50%; position: absolute; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(5px); color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .btn-c:active { background: var(--primary); transform: scale(0.9); color:#000; }
+        .dpad { width: 150px; height: 150px; position: relative; pointer-events: auto; }
+        .c-u { top: 0; left: 50px; } .c-d { bottom: 0; left: 50px; } .c-l { top: 50px; left: 0; } .c-r { top: 50px; right: 0; }
+        .acts { display: flex; gap: 20px; align-items: flex-end; pointer-events: auto; }
+        .btn-act { width: 80px; height: 80px; border-radius: 50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); }
+        .btn-a { background: #51cf66; color: #fff; } .btn-b { background: #ff6b6b; width: 60px; height: 60px; margin-bottom: 10px; font-size: 1.2rem; color:#fff; }
+        
+        .modal-wrap { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal-wrap.active { display: flex; }
+        .modal { background: var(--panel); width: 85%; max-width: 320px; border-radius: 24px; padding: 25px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.8); }
+        .diff-opt { padding: 15px; margin: 10px 0; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; transition: 0.2s; }
+        .diff-opt:hover { border-color: var(--primary); background: rgba(255,255,255,0.05); }
+        .toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(30,30,30,0.95); padding: 10px 24px; border-radius: 30px; z-index: 200; display: none; border: 1px solid var(--primary); font-weight: bold; }
+        
+        .empty-state { grid-column: 1/-1; text-align: center; color: #666; padding: 40px; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <canvas id="cvs"></canvas>
-    <div id="toast">提示</div>
-
-    <!-- 1. Login -->
-    <div id="l-login" class="layer active interactive">
-        <div class="card">
-            <button class="btn btn-lang" onclick="Lang.toggle()">English / 中文</button>
-            <h1 style="color:var(--primary); margin:0 0 10px 0; font-size: 40px;" data-t="app_title">3D 冒險盒</h1>
-            <p style="color:var(--text-sub); margin-bottom: 30px;" data-t="app_subtitle">V23 經驗值修復版</p>
-            <input type="text" id="uid" data-ph="login_placeholder">
-            <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="Sys.login()" data-t="login_btn">開始冒險</button>
+    <div id="l-login" class="layer active">
+        <div class="box">
+            <h1 style="color:var(--primary); margin:0; text-shadow: 0 0 15px var(--primary);">ROBLOX V64</h1>
+            <p style="color:var(--text-sub); margin-bottom:30px;">邏輯鎖定修正版</p>
+            <input type="text" id="uid" placeholder="輸入玩家 ID" maxlength="12">
+            <button class="primary" onclick="window.Sys.login()" style="width:100%; font-size:1.2rem; margin-top:20px;">開始遊戲</button>
         </div>
     </div>
 
-    <!-- 2. Menu -->
-    <div id="l-menu" class="layer interactive">
-        <div class="top-bar">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>
-                <div>
-                    <div style="font-weight:bold; font-size:18px;"><span id="m-name">Guest</span> <span style="font-size:12px; color:var(--text-sub);">(Lv.<span id="m-lvl">1</span>)</span></div>
-                    <div class="exp-container">
-                        <div class="exp-fill" id="m-exp-bar"></div>
-                        <div class="exp-text"><span id="m-exp-val">0</span>%</div>
-                    </div>
+    <div id="l-menu" class="layer">
+        <header>
+            <div class="u-info">
+                <div style="font-weight:bold; color:var(--primary);" id="m-id">Guest</div>
+                <div style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-sub);">
+                    LV.<span id="m-lv">1</span>
+                    <div class="exp-bar"><div class="exp-fill" id="m-exp"></div></div>
                 </div>
             </div>
-            <div style="display:flex; gap:20px; font-size:18px; font-weight:bold; background:rgba(0,0,0,0.3); padding:8px 20px; border-radius:50px; border:1px solid var(--glass-border);">
-                <span style="color:var(--accent)">💰 <span id="m-coin">0</span></span>
-                <span style="color:var(--danger)">💎 <span id="m-gem">0</span></span>
+            <div class="res">
+                <div class="res-box">🪙 <span id="m-coin">0</span></div>
+                <div class="res-box">💎 <span id="m-gem">0</span></div>
             </div>
+        </header>
+        <div class="nav">
+            <div class="tab active" onclick="window.Menu.sw('games',this)">遊戲大廳</div>
+            <div class="tab" onclick="window.Menu.sw('gacha',this)">幸運轉蛋</div>
+            <div class="tab" onclick="window.Menu.sw('shop',this)">道具商店</div>
+            <div class="tab" onclick="window.Menu.sw('bag',this)">我的背包</div>
+            <div class="tab" onclick="window.Menu.sw('ai',this)">AI 助手</div>
         </div>
-        <div class="main-view">
-            <div class="sidebar">
-                <div class="tab active" onclick="Menu.sw('games', this)"><span style="font-size:20px;">🎮</span> <span data-t="tab_games">遊戲大廳</span></div>
-                <div class="tab" onclick="Menu.sw('shop', this)"><span style="font-size:20px;">🛒</span> <span data-t="tab_shop">道具商店</span></div>
-                <div class="tab" onclick="Menu.sw('bag', this)"><span style="font-size:20px;">🎒</span> <span data-t="tab_bag">我的背包</span></div>
-                <div class="tab" onclick="Menu.sw('ai', this)"><span style="font-size:20px;">🤖</span> <span data-t="tab_ai">AI 助手</span></div>
-                <div style="flex:1"></div>
-                <div class="tab" style="color:var(--danger)" onclick="Sys.logout()"><span style="font-size:20px;">🚪</span> <span data-t="btn_logout">登出</span></div>
+        <div id="content">
+            <div id="p-games" class="grid"><div class="empty-state">載入中...</div></div>
+            
+            <div id="p-gacha">
+                <h2 style="color:var(--accent);">幸運轉蛋機</h2>
+                <div class="gacha-machine">
+                    <div class="gm-glass" id="gm-glass">🎁</div>
+                    <div style="margin-top:30px; font-size:2rem;">⬇️</div>
+                    <button class="primary" onclick="window.Sys.gacha()" style="width:160px; font-size:1.2rem; margin-top:20px;">抽一次 ($200)</button>
+                </div>
             </div>
             
-            <div id="p-games" class="content active-grid"></div>
-            <div id="p-shop" class="content grid-layout"></div>
-            <div id="p-bag" class="content grid-layout"></div>
+            <div id="p-shop" class="grid" style="display:none"><div class="empty-state">商店載入中...</div></div>
+            <div id="p-bag" class="grid" style="display:none"><div class="empty-state">背包載入中...</div></div>
             
-            <div id="p-ai" class="content">
-                <div id="chat-hist" style="height:calc(100% - 60px); background:rgba(0,0,0,0.2); border-radius:16px; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:15px; border:1px solid var(--glass-border);">
-                    <div style="color:var(--primary); font-weight:bold;" data-t="ai_welcome">AI: 嗨！需要攻略或賺錢建議嗎？</div>
+            <div id="p-ai">
+                <div class="chat-hist" id="chat-hist">
+                    <div class="msg m-ai">你好！我是 AI 助手。我們新進了 30 種道具，歡迎選購！</div>
                 </div>
-                <div style="display:flex; gap:15px; margin-top:15px;">
-                    <input id="chat-in" data-ph="ai_placeholder" style="flex:1; text-align:left; padding-left:20px; margin:0; font-size:16px; background:rgba(255,255,255,0.1);">
-                    <button class="btn btn-blue" style="margin:0; padding:0 30px;" onclick="AI.ask()" data-t="btn_send">發送</button>
+                <div style="display:flex; gap:10px; padding:10px; background:#25262b; border-radius:12px; margin-top:10px;">
+                    <input type="text" id="chat-in" placeholder="輸入問題..." style="margin:0; text-align:left; background:transparent; border:none; box-shadow:none; flex:1;">
+                    <button class="primary" onclick="window.AI.ask()" style="width:auto; padding:5px 15px;">發送</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. Game HUD -->
     <div id="l-game" class="layer">
-        <div class="hud">
+        <div id="g-hud">
             <div>
-                <span class="pill" style="border-color:var(--accent); color:var(--accent);"><span data-t="hud_level">Lv</span>.<span id="g-lvl">1</span></span>
-                <span class="pill" style="border-color:var(--primary); color:var(--primary);"><span data-t="hud_score">Score</span>:<span id="g-scr">0</span></span>
-                <span class="pill" style="border-color:var(--danger); color:var(--danger);"><span data-t="hud_hp">HP</span>:<span id="g-hp">100</span></span>
+                <div style="font-size:1.8rem; color:var(--accent); font-weight:bold; text-shadow:0 2px 5px rgba(0,0,0,0.5)">🏆 <span id="g-sc">0</span></div>
+                <div class="g-buffs" id="g-buffs"></div>
             </div>
-            <div class="interactive">
-                <button class="btn btn-red" style="padding:8px 20px; margin:0;" onclick="Eng.pause()">II</button>
+            <div style="text-align:right">
+                <div style="font-size:0.9rem; color:#aaa; margin-bottom:5px;">關卡 <span id="g-st">1</span></div>
+                <div style="color:var(--danger); font-weight:bold; font-size:1.4rem; text-shadow:0 0 10px rgba(255,107,107,0.3)">HP <span id="g-hp">100</span></div>
             </div>
         </div>
-        
-        <div class="controls interactive" id="ctrl-std">
+        <div id="btn-pause" onclick="window.Eng.pause()">⏸</div>
+        <canvas id="cvs"></canvas>
+        <div id="g-ctrl">
             <div class="dpad">
-                <div class="c-btn b-u" data-k="ArrowUp">▲</div>
-                <div class="c-btn b-d" data-k="ArrowDown">▼</div>
-                <div class="c-btn b-l" data-k="ArrowLeft">◀</div>
-                <div class="c-btn b-r" data-k="ArrowRight">▶</div>
+                <div class="btn-c c-u" data-k="ArrowUp">▲</div>
+                <div class="btn-c c-d" data-k="ArrowDown">▼</div>
+                <div class="btn-c c-l" data-k="ArrowLeft">◀</div>
+                <div class="btn-c c-r" data-k="ArrowRight">▶</div>
             </div>
-            <div class="actions">
-                <div class="c-btn b-a" data-k="KeyA">A</div>
-                <div class="c-btn b-b" data-k="KeyB">B</div>
+            <div class="acts">
+                <div class="btn-act btn-b" data-k="KeyX">B</div>
+                <div class="btn-act btn-a" data-k="KeyZ">A</div>
             </div>
-        </div>
-        
-        <div class="controls interactive" id="ctrl-rhy" style="display:none">
-             <div style="position:absolute; bottom:20px; width:100%; display:flex; justify-content:center; gap:15px;">
-                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyD">D</div>
-                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyF">F</div>
-                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyJ">J</div>
-                <div class="c-btn" style="position:relative; width:70px; height:90px; border-radius:10px;" data-k="KeyK">K</div>
-             </div>
         </div>
     </div>
 
-    <!-- 4. Modal -->
-    <div id="l-modal" class="layer interactive">
-        <div class="card" style="width: 420px; max-width:90%;">
-            <h2 id="mo-title" style="color:var(--primary); margin-top:0; font-size:28px;">標題</h2>
-            <div id="mo-body" style="margin:25px 0; color:var(--text-sub); line-height:1.6; font-size:18px;">內容</div>
-            <div id="mo-foot"></div>
+    <div id="l-modal" class="modal-wrap">
+        <div class="modal">
+            <h2 id="mo-t" style="color:var(--primary); margin-top:0;">Title</h2>
+            <div id="mo-b" style="color:var(--text-sub); margin-bottom:20px;">Body</div>
+            <div id="mo-f" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
     </div>
-</div>
+    <div class="toast" id="toast">Msg</div>
 
 <script>
-/* --- 0. LANGUAGE SYSTEM --- */
-const Lang = (function() {
-    let cur = localStorage.getItem('rbx_lang') || 'zh-TW';
-    const data = {
-        "zh-TW": {
-            app_title: "3D 冒險盒", app_subtitle: "V23 經驗值修復版", login_placeholder: "輸入 ID 讀取存檔", login_btn: "開始冒險",
-            tab_games: "遊戲大廳", tab_shop: "道具商店", tab_bag: "我的背包", tab_ai: "AI 助手", btn_logout: "登出",
-            ai_welcome: "AI: 嗨！需要攻略或賺錢建議嗎？", ai_placeholder: "例如：迷宮怎麼過？", btn_send: "發送",
-            hud_score: "分數", hud_level: "關卡", hud_hp: "血量",
-            modal_pause: "暫停", modal_rest: "休息一下", btn_continue: "繼續", btn_exit: "離開",
-            btn_retry: "重試", btn_lobby: "回大廳", btn_next: "下一關", msg_win: "勝利！", msg_fail: "失敗",
-            msg_get_coin: "獲得金幣", shop_owned: "已擁有", shop_buy: "購買", shop_use: "使用",
-            bag_empty: "背包空空的...", bag_equip: "已裝備", bag_consumable: "消耗品",
-            toast_welcome: "歡迎回來", toast_new: "歡迎新玩家！獲得 1000 金幣！", toast_no_money: "金幣不足！",
-            toast_bought: "購買成功",
-            g_maze: "迷宮探險", g_space: "星際守護者", g_puzzle: "魔法推箱", g_race: "極速飄移",
-            g_horror: "恐怖醫院", g_rhythm: "節奏大師", g_snake: "貪吃蛇", g_jump: "跳跳樂",
-            g_break: "打磚塊", g_mem: "記憶翻牌", g_dodge: "彈幕閃避", g_click: "挖礦大亨",
-            i_gem: "神秘寶石袋", id_gem: "隨機獲得 10-100 寶石",
-            i_mag: "超級磁鐵", id_mag: "自動吸附金幣範圍+20%",
-            i_exp: "經驗藥水", id_exp: "立即獲得 500 經驗",
-            i_rev: "復活十字架", id_rev: "死亡時自動消耗復活",
-            i_spd: "風之靴", id_spd: "速度 +1",
-            i_hp: "紅寶石護符", id_hp: "血量 +20",
-            i_s1: "黃金霸主", id_s1: "解鎖奢華黃金介面",
-            i_s2: "鑽石星辰", id_s2: "解鎖科技鑽石介面",
-            i_key: "萬能鑰匙", id_key: "跳關道具"
-        },
-        "en": {
-            app_title: "3D Adventure Box", app_subtitle: "V23 EXP Fix", login_placeholder: "Enter ID", login_btn: "Start",
-            tab_games: "Games", tab_shop: "Shop", tab_bag: "Inventory", tab_ai: "AI", btn_logout: "Logout",
-            ai_welcome: "AI: Hi! Need tips?", ai_placeholder: "e.g. How to play?", btn_send: "Send",
-            hud_score: "Score", hud_level: "Lv.", hud_hp: "HP",
-            modal_pause: "Paused", modal_rest: "Rest", btn_continue: "Resume", btn_exit: "Exit",
-            btn_retry: "Retry", btn_lobby: "Lobby", btn_next: "Next Level", msg_win: "Victory!", msg_fail: "Defeat",
-            msg_get_coin: "Coins Earned", shop_owned: "Owned", shop_buy: "Buy", shop_use: "Use",
-            bag_empty: "Inventory empty...", bag_equip: "Equipped",
-            toast_welcome: "Welcome back", toast_new: "Welcome! +1000 Coins!", toast_no_money: "Not enough coins!",
-            toast_bought: "Purchased",
-            g_maze: "Maze Runner", g_space: "Space Guardian", g_puzzle: "Sokoban", g_race: "Speed Racer",
-            g_horror: "Horror Hospital", g_rhythm: "Rhythm Master", g_snake: "Snake", g_jump: "Jumper",
-            g_break: "Breakout", g_mem: "Memory Flip", g_dodge: "Dodger", g_click: "Mining Tycoon",
-            i_gem: "Gem Bag", id_gem: "Random 10-100 Gems",
-            i_mag: "Super Magnet", id_mag: "Bigger Hitbox/Range",
-            i_exp: "EXP Potion", id_exp: "+500 EXP",
-            i_rev: "Revive Cross", id_rev: "Auto consume to revive",
-            i_spd: "Wind Boots", id_spd: "Speed +1 (Passive)",
-            i_hp: "Ruby Amulet", id_hp: "HP +20 (Passive)",
-            i_s1: "Gold Theme", id_s1: "Unlock Gold UI",
-            i_s2: "Diamond Theme", id_s2: "Unlock Diamond UI",
-            i_key: "Master Key", id_key: "Skip Level"
-        }
-    };
-    function t(key) { return data[cur][key] || key; }
-    function toggle() { cur = cur === 'zh-TW' ? 'en' : 'zh-TW'; localStorage.setItem('rbx_lang', cur); apply(); }
-    function apply() {
-        document.querySelectorAll('[data-t]').forEach(el => el.innerText = t(el.dataset.t));
-        document.querySelectorAll('[data-ph]').forEach(el => el.placeholder = t(el.dataset.ph));
-        if(document.getElementById('l-menu').classList.contains('active')) Menu.init();
-    }
-    setTimeout(apply, 10);
-    return { t, toggle, get cur(){return cur} };
-})();
-
-/* --- 1. SYSTEM CORE --- */
-const Sys = (function() {
-    let user = { id:'', coins:0, gems:0, level:1, exp:0, bag:[], stats:{spd:0, hp:0}, progress:{}, theme:'default' };
-    const items = [
-        {id:'gem_pack', t:'i_gem', d:'id_gem', price:500, type:'gacha', icon:'💎'},
-        {id:'magnet', t:'i_mag', d:'id_mag', price:800, type:'passive', val:1, icon:'🧲'},
-        {id:'potion_exp', t:'i_exp', d:'id_exp', price:1000, type:'use', val:500, icon:'🧪'},
-        {id:'revive', t:'i_rev', d:'id_rev', price:100, type:'item', val:1, icon:'✝️'},
-        {id:'key', t:'i_key', d:'id_key', price:100, type:'key', val:1, icon:'🔑'},
-        {id:'spd1', t:'i_spd', d:'id_spd', price:200, type:'spd', val:1, icon:'👟'},
-        {id:'hp1', t:'i_hp', d:'id_hp', price:300, type:'hp', val:20, icon:'❤️'},
-        {id:'skin1', t:'i_s1', d:'id_s1', price:5000, type:'skin', val:1, icon:'🏆'},
-        {id:'skin2', t:'i_s2', d:'id_s2', price:7500, type:'skin', val:2, icon:'💠'}
-    ];
-
-    function login() {
-        const id = document.getElementById('uid').value.trim() || "Guest";
-        const save = localStorage.getItem('rbx_v23_'+id);
-        if(save) {
-            user = JSON.parse(save);
-            if(!user.progress) user.progress = {};
-            if(!user.level) user.level = 1;
-            if(user.exp === undefined) user.exp = 0;
-            toast(Lang.t('toast_welcome') + `, ${user.id}！`);
-        } else {
-            user = { ...user, id, coins:1000, gems:20, progress:{} };
-            user.bag.push({id:'newbie', t:'i_gem', icon:'🎁'});
-            toast(Lang.t('toast_new'));
-        }
-        applyTheme();
-        updateUI();
-        Layer.sw('l-menu');
-        Menu.init();
-    }
-    
-    function logout() { save(); Layer.sw('l-login'); document.body.className=''; }
-    function save() { localStorage.setItem('rbx_v23_'+user.id, JSON.stringify(user)); updateUI(); }
-    
-    function applyTheme() {
-        document.body.className = '';
-        if(user.bag.some(i => i.id === 'skin2')) document.body.classList.add('theme-diamond');
-        else if(user.bag.some(i => i.id === 'skin1')) document.body.classList.add('theme-gold');
-    }
-
-    function updateUI() {
-        document.getElementById('m-name').innerText = user.id;
-        document.getElementById('m-lvl').innerText = user.level;
-        document.getElementById('m-coin').innerText = user.coins;
-        document.getElementById('m-gem').innerText = user.gems;
-        
-        // Exp Bar
-        const req = user.level * 1000;
-        const pct = Math.min(100, (user.exp / req) * 100).toFixed(1);
-        document.getElementById('m-exp-bar').style.width = pct + '%';
-        document.getElementById('m-exp-val').innerText = pct;
-    }
-    
-    function hasItem(id) { return user.bag.some(i => i.id === id); }
-    
-    function addExp(amount) {
-        user.exp += amount;
-        let req = user.level * 1000;
-        if(user.exp >= req) {
-            user.exp -= req; user.level++;
-            user.coins += 500; 
-            toast(`Level Up! Lv.${user.level} (+500 Coins)`);
-            save();
-        } else {
-            toast(`+${amount} EXP`);
-        }
-        updateUI();
-    }
-
-    function buy(idx) {
-        const it = items[idx];
-        if(['spd','hp','skin','passive'].includes(it.type) && hasItem(it.id)) return toast(Lang.t('shop_owned'), true);
-        
-        if(user.coins >= it.price) {
-            user.coins -= it.price;
-            
-            if(it.type === 'gacha') {
-                let amt = Math.floor(Math.random()*90)+10;
-                user.gems += amt;
-                Layer.modal("Gacha", `💎 +${amt}`, `<button class="btn btn-blue" onclick="Layer.closeModal()">OK</button>`);
-            } else if(it.type === 'use') {
-                if(it.id === 'potion_exp') { addExp(it.val); }
-            } else if(it.type === 'key' || it.type === 'item') {
-                 user.bag.push(it);
-                 toast(`${Lang.t('toast_bought')}: ${Lang.t(it.t)}`);
-            } else {
-                user.bag.push(it);
-                if(it.type==='spd') user.stats.spd += it.val;
-                if(it.type==='hp') user.stats.hp += it.val;
-                if(it.type==='skin') { applyTheme(); toast("Theme Applied!"); }
-                toast(Lang.t('toast_bought'));
-            }
-            save();
-            Menu.renderShop(); Menu.renderBag();
-        } else {
-            toast(Lang.t('toast_no_money'), true);
-        }
-    }
-
-    function toast(msg, err=false) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.className = err ? 'toast-err' : '';
-        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000);
-    }
-
-    return { login, logout, save, get user(){return user}, get items(){return items}, buy, updateUI, toast, hasItem, addExp };
-})();
-
-/* --- 2. LAYER & INPUT --- */
-const Layer = {
-    sw: (id) => {
-        document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(id === 'l-menu') Render.resize();
-    },
-    modal: (t, b, html) => {
-        document.getElementById('mo-title').innerHTML = t;
-        document.getElementById('mo-body').innerHTML = b;
-        document.getElementById('mo-foot').innerHTML = html;
-        document.getElementById('l-modal').classList.add('active');
-    },
-    closeModal: () => document.getElementById('l-modal').classList.remove('active')
-};
-
-const Input = { u:0, d:0, l:0, r:0, a:0, b:0 };
-const setK = (k,v) => {
-    if(k==='ArrowUp'||k==='KeyW') Input.u=v; if(k==='ArrowDown'||k==='KeyS') Input.d=v;
-    if(k==='ArrowLeft'||k==='KeyA') Input.l=v; if(k==='ArrowRight'||k==='KeyD') Input.r=v;
-    if(k==='KeyZ'||k==='Space') Input.a=v; if(k==='KeyX'||k==='ShiftLeft') Input.b=v;
-    if(k==='KeyD') Input.l=v; if(k==='KeyF') Input.d=v; if(k==='KeyJ') Input.u=v; if(k==='KeyK') Input.r=v;
-};
-window.onkeydown = e => { setK(e.code,1); if(e.code==='Escape') Eng.pause(); };
-window.onkeyup = e => setK(e.code,0);
-document.querySelectorAll('.c-btn').forEach(b => {
-    const k = b.dataset.k;
-    const press = (e) => { e.preventDefault(); b.classList.add('press'); setK(k, 1); };
-    const release = (e) => { e.preventDefault(); b.classList.remove('press'); setK(k, 0); };
-    b.addEventListener('mousedown', press); b.addEventListener('touchstart', press, {passive:false});
-    b.addEventListener('mouseup', release); b.addEventListener('touchend', release); b.addEventListener('mouseleave', release);
-});
-
-/* --- 3. RENDER --- */
-const Render = (function() {
-    const cvs = document.getElementById('cvs');
-    const ctx = cvs.getContext('2d');
-    let W, H;
-    function resize() { W = cvs.parentElement.clientWidth; H = cvs.parentElement.clientHeight; cvs.width=W; cvs.height=H; }
-    window.onresize = resize;
-
-    const Draw = {
-        clear: (c) => { 
-            if(!c) c = '#1a1a1d';
-            if(document.body.classList.contains('theme-gold')) c = '#332200';
-            if(document.body.classList.contains('theme-diamond')) c = '#001a33';
-            let g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, c); g.addColorStop(1, '#000');
-            ctx.fillStyle=g; ctx.fillRect(0,0,W,H); 
-        },
-        rect: (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(x,y,w,h); },
-        box: (x,y,w,h,c,d=5) => {
-            ctx.fillStyle = shade(c, -40); ctx.beginPath(); ctx.moveTo(x+w,y); ctx.lineTo(x+w+d,y-d); ctx.lineTo(x+w+d,y+h-d); ctx.lineTo(x+w,y+h); ctx.fill();
-            ctx.fillStyle = shade(c, 40); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+d,y-d); ctx.lineTo(x+w+d,y-d); ctx.lineTo(x+w,y); ctx.fill();
-            ctx.fillStyle = c; ctx.fillRect(x,y,w,h);
-        },
-        circle: (x,y,r,c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); },
-        text: (t,x,y,s=30,c='#fff') => { ctx.fillStyle=c; ctx.font=`bold ${s}px Fredoka`; ctx.textAlign='center'; ctx.fillText(t,x,y); },
-        player: (x,y,c,s=1) => {
-            if(Sys.user.bag.some(i=>i.id==='skin2')) c='#00d2ff'; else if(Sys.user.bag.some(i=>i.id==='skin1')) c='#fcc419';
-            Draw.box(x-10*s,y-10*s,20*s,20*s,c,5*s); ctx.fillStyle='white'; ctx.fillRect(x-5*s,y-5*s,4*s,4*s); ctx.fillRect(x+3*s,y-5*s,4*s,4*s);
-        },
-        pattern: (type) => {
-            if(type==='grass') { ctx.fillStyle='rgba(0,255,0,0.05)'; for(let i=0;i<W;i+=40)for(let j=0;j<H;j+=40) if((i+j)%80==0) ctx.fillRect(i,j,40,40); }
-            if(type==='road') { ctx.fillStyle='#444'; ctx.fillRect(W/2-100,0,200,H); ctx.fillStyle='#fff'; for(let i=0;i<H;i+=60) ctx.fillRect(W/2-5,i,10,40); }
-            if(type==='grid') { ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.beginPath(); for(let i=0;i<W;i+=40){ctx.moveTo(i,0);ctx.lineTo(i,H);} for(let i=0;i<H;i+=40){ctx.moveTo(0,i);ctx.lineTo(W,i);} ctx.stroke(); }
-        }
-    };
-    function shade(col, amt) {
-        let usePound = false; if (col[0] == "#") { col = col.slice(1); usePound = true; }
-        let num = parseInt(col,16);
-        let r = (num >> 16) + amt; if (r > 255) r = 255; else if (r < 0) r = 0;
-        let b = ((num >> 8) & 0x00FF) + amt; if (b > 255) b = 255; else if (b < 0) b = 0;
-        let g = (num & 0x0000FF) + amt; if (g > 255) g = 255; else if (g < 0) g = 0;
-        return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
-    }
-    return { resize, Draw, get w(){return W}, get h(){return H} };
-})();
-
-/* --- 4. GAME LOGIC --- */
-class GBase { 
-    constructor(cfg, lv) { 
-        this.cfg = cfg || {}; this.lv = lv || 1; this.score = 0; this.t = 0;
-        this.hp = 100 + Sys.user.stats.hp; 
-        this.spd = Sys.user.stats.spd;
-        this.hasMagnet = Sys.hasItem('magnet');
-    }
-    win() { Eng.over(1); } fail() { Eng.over(0); }
-}
-
-class GMaze extends GBase {
-    start() { this.p={x:50,y:50}; this.goal={x:Render.w-50,y:Render.h-50}; this.ws=this.genMaze(15+this.lv*3); this.es=[]; let eCount=Math.floor(this.lv/2)+1; for(let i=0;i<eCount;i++) this.es.push({x:Math.random()*Render.w, y:Math.random()*Render.h, vx:1+this.lv*0.1, vy:1+this.lv*0.1}); }
-    genMaze(count) { let w=[]; w.push({x:0,y:0,w:Render.w,h:20},{x:0,y:Render.h-20,w:Render.w,h:20},{x:0,y:0,w:20,h:Render.h},{x:Render.w-20,y:0,w:20,h:Render.h}); for(let i=0;i<count;i++) { let x=Math.random()*Render.w, y=Math.random()*Render.h; if(Math.hypot(x-50,y-50)<150) continue; w.push({x, y, w:Math.random()>0.5?100:20, h:Math.random()>0.5?20:100}); } return w; }
-    upd() { let s=4+this.spd*0.5; if(Input.u)this.p.y-=s; if(Input.d)this.p.y+=s; if(Input.l)this.p.x-=s; if(Input.r)this.p.x+=s; if(!this.ws.some(w=>this.p.x>w.x-10 && this.p.x<w.x+w.w+10 && this.p.y>w.y-10 && this.p.y<w.y+w.h+10)) {this.lx=this.p.x;this.ly=this.p.y;} else {this.p.x=this.lx;this.p.y=this.ly;} this.es.forEach(e=>{e.x+=e.vx; e.y+=e.vy; if(e.x<0||e.x>Render.w)e.vx*=-1; if(e.y<0||e.y>Render.h)e.vy*=-1; if(Math.hypot(this.p.x-e.x, this.p.y-e.y)<25){this.hp-=10;if(this.hp<=0)this.fail();}}); if(Math.hypot(this.p.x-this.goal.x, this.p.y-this.goal.y)<30)this.win(); }
-    drw() { Render.Draw.clear(this.cfg.bg); Render.Draw.pattern('grid'); Render.Draw.text("EXIT",this.goal.x,this.goal.y-30); Render.Draw.box(this.goal.x-15,this.goal.y-15,30,30,'#51cf66'); this.ws.forEach(w=>Render.Draw.box(w.x,w.y,w.w,w.h,'#868e96')); this.es.forEach(e=>Render.Draw.box(e.x-10,e.y-10,20,20,'#ff6b6b')); Render.Draw.player(this.p.x,this.p.y,'#4dabf7'); }
-}
-class GSnake extends GBase { 
-    start() { this.sz=20; this.sn=[{x:10,y:10}]; this.d={x:1,y:0}; this.fd={x:15,y:15}; this.tick=Math.max(3, 12-this.lv*0.5); } 
-    upd() { 
-        if(Input.u&&this.d.y===0)this.d={x:0,y:-1}; if(Input.d&&this.d.y===0)this.d={x:0,y:1}; if(Input.l&&this.d.x===0)this.d={x:-1,y:0}; if(Input.r&&this.d.x===0)this.d={x:1,y:0}; 
-        if(this.t++%Math.floor(this.tick)===0) { 
-            let h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; 
-            if(h.x<0||h.x>Render.w/this.sz||h.y<0||h.y>Render.h/this.sz||this.sn.some(s=>s.x===h.x&&s.y===h.y)) return this.fail(); 
-            this.sn.unshift(h); 
-            let dist = this.hasMagnet ? 2 : 0;
-            if(Math.abs(h.x-this.fd.x)<=dist && Math.abs(h.y-this.fd.y)<=dist) { 
-                this.score+=10; this.fd={x:Math.floor(Math.random()*(Render.w/this.sz)), y:Math.floor(Math.random()*(Render.h/this.sz))}; 
-            } else this.sn.pop(); 
-            if(this.score>=50+this.lv*20) this.win(); 
-        } 
-    } 
-    drw() { Render.Draw.clear('#222'); Render.Draw.pattern('grass'); Render.Draw.box(this.fd.x*this.sz, this.fd.y*this.sz, this.sz, this.sz, '#ff6b6b'); this.sn.forEach(s=>Render.Draw.box(s.x*this.sz, s.y*this.sz, this.sz, this.sz, '#51cf66')); } 
-}
-class GBreak extends GBase { start() { this.pad={x:Render.w/2}; this.b={x:Render.w/2, y:Render.h/2, vx:4+this.lv*0.2, vy:4+this.lv*0.2}; this.bls=[]; for(let i=0;i<8+this.lv;i++) this.bls.push({x:(i%6)*90+50, y:Math.floor(i/6)*30+50, a:1}); } upd() { if(Input.l)this.pad.x-=8; if(Input.r)this.pad.x+=8; this.b.x+=this.b.vx; this.b.y+=this.b.vy; if(this.b.x<0||this.b.x>Render.w)this.b.vx*=-1; if(this.b.y<0)this.b.vy*=-1; if(this.b.y>Render.h-30 && Math.abs(this.b.x-this.pad.x)<60) this.b.vy*=-1; if(this.b.y>Render.h) this.fail(); this.bls.forEach(k=>{if(k.a && this.b.x>k.x && this.b.x<k.x+80 && this.b.y>k.y && this.b.y<k.y+20){k.a=0; this.b.vy*=-1; this.score+=10;}}); if(this.bls.every(k=>!k.a)) this.win(); } drw() { Render.Draw.clear('#222'); Render.Draw.box(this.pad.x-50, Render.h-20, 100, 15, '#4dabf7'); Render.Draw.circle(this.b.x, this.b.y, 8, '#fff'); this.bls.forEach(k=>{if(k.a) Render.Draw.box(k.x, k.y, 80, 20, '#ff6b6b');}); } }
-class GRace extends GBase { start() { this.px=Render.w/2; this.obs=[]; this.speed=6+this.lv*0.5; } upd() { if(Input.l)this.px-=6; if(Input.r)this.px+=6; if(this.t++%(Math.max(10,30-this.lv))===0) this.obs.push({x:Math.random()*(200)+Render.w/2-100, y:0, w:Math.random()*50+30}); this.obs.forEach(o=>{o.y+=this.speed; o.w+=1; o.x-=0.5; if(Math.abs(this.px-o.x)<o.w && Math.abs(Render.h-80-o.y)<20) this.fail(); }); this.score=this.t; if(this.score>500+this.lv*100) this.win(); } drw() { Render.Draw.clear('#338'); Render.Draw.pattern('road'); Render.Draw.box(this.px-20, Render.h-80, 40, 20, '#fcc419'); this.obs.forEach(o=>Render.Draw.box(o.x, o.y, o.w, 20, '#ff6b6b')); } }
-class GPong extends GBase { start() { this.bx=Render.w/2; this.by=50; this.vx=4+this.lv*0.2; this.vy=4+this.lv*0.2; this.px=Render.w/2; } upd() { if(Input.l)this.px-=8; if(Input.r)this.px+=8; this.bx+=this.vx; this.by+=this.vy; if(this.bx<0||this.bx>Render.w)this.vx*=-1; if(this.by<0)this.vy*=-1; if(this.by>Render.h-40 && Math.abs(this.bx-this.px)<50) { this.vy*=-1; this.score++; } if(this.by>Render.h) this.fail(); if(this.score>=5+this.lv) this.win(); } drw() { Render.Draw.clear('#225522'); Render.Draw.rect(0, Render.h/2-2, Render.w, 4, '#fff'); Render.Draw.box(this.px-50, Render.h-30, 100, 10, '#fff'); Render.Draw.circle(this.bx, this.by, 10, '#fcc419'); } }
-class GDrop extends GBase { start() { this.blks=[]; this.cur={x:0, w:100}; this.dir=3+this.lv*0.5; } upd() { this.cur.x+=this.dir; if(this.cur.x>Render.w-100||this.cur.x<0)this.dir*=-1; if(Input.a) { Input.a=0; this.blks.push({x:this.cur.x, y:Render.h-this.blks.length*30-30, w:100}); this.score++; if(this.score>=5+this.lv) this.win(); } } drw() { Render.Draw.clear('#222'); Render.Draw.box(this.cur.x, 50, 100, 30, '#fff'); this.blks.forEach(b=>Render.Draw.box(b.x, b.y, b.w, 30, '#51cf66')); } }
-class GSpace extends GBase { start(){this.p={x:Render.w/2,y:Render.h-50};this.es=[];this.bs=[];} upd(){if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;if(Input.a&&this.t%10==0)this.bs.push({x:this.p.x,y:this.p.y});if(this.t++%(50-this.lv)==0)this.es.push({x:Math.random()*Render.w,y:0});this.bs.forEach(b=>b.y-=10);this.es.forEach(e=>e.y+=3);this.bs=this.bs.filter(b=>{let h=this.es.findIndex(e=>Math.hypot(e.x-b.x,e.y-b.y)<30);if(h>-1){this.es.splice(h,1);this.score+=10;return 0}return b.y>0});if(this.es.some(e=>e.y>Render.h))this.fail();if(this.score>100+this.lv*20)this.win();} drw(){Render.Draw.clear('#000');Render.Draw.player(this.p.x,this.p.y,'#aaa');this.es.forEach(e=>Render.Draw.box(e.x,e.y,30,30,'#f00'));this.bs.forEach(b=>Render.Draw.box(b.x,b.y,5,10,'#ff0'));} }
-class GRhy extends GBase { 
-    start(){this.nts=[];this.lns=[Render.w*0.2,Render.w*0.4,Render.w*0.6,Render.w*0.8];} 
-    upd(){
-        if(this.t++%Math.max(20,50-this.lv)==0)this.nts.push({l:Math.floor(Math.random()*4),y:0});
-        this.nts.forEach(n=>n.y+=5);
-        let tol = this.hasMagnet ? 80 : 60;
-        if(Input.l&&this.chk(0,tol))this.score+=10;if(Input.d&&this.chk(1,tol))this.score+=10;
-        if(Input.u&&this.chk(2,tol))this.score+=10;if(Input.r&&this.chk(3,tol))this.score+=10;
-        if(this.score>100+this.lv*20)this.win();
-    } 
-    chk(l, tol){let i=this.nts.findIndex(n=>n.l==l&&Math.abs(n.y-(Render.h-60))<tol);if(i>-1){this.nts.splice(i,1);return 1}return 0} 
-    drw(){Render.Draw.clear('#111');this.lns.forEach(x=>Render.Draw.box(x-30,Render.h-60,60,10,'#555'));this.nts.forEach(n=>Render.Draw.box(this.lns[n.l]-25,n.y,50,20,'#0ff'));} 
-}
-class GDodge extends GBase { start(){this.p={x:Render.w/2,y:Render.h/2};this.obs=[];} upd(){if(Input.u)this.p.y-=5;if(Input.d)this.p.y+=5;if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;if(this.t++%(15-this.lv*0.5)==0)this.obs.push({x:Math.random()*Render.w,y:0});this.obs.forEach(o=>{o.y+=5;if(Math.hypot(this.p.x-o.x,this.p.y-o.y)<20)this.fail()});this.score=this.t;if(this.score>300+this.lv*50)this.win();} drw(){Render.Draw.clear('#222');Render.Draw.player(this.p.x,this.p.y,'#fff');this.obs.forEach(o=>Render.Draw.circle(o.x,o.y,10,'#f00'));} }
-class GClick extends GBase { start(){this.req=20+this.lv*5;this.ores=[];} upd(){if(Input.a){Input.a=0;this.score++;this.ores.push({x:Math.random()*Render.w,y:Math.random()*Render.h,t:20});}if(this.score>=this.req)this.win();} drw(){Render.Draw.clear('#333');Render.Draw.text(`按 A (${this.score}/${this.req})`,Render.w/2,Render.h/2);this.ores.forEach(o=>{if(o.t-->0)Render.Draw.text("💎",o.x,o.y)})} }
-class GJumper extends GBase { start(){this.p={x:Render.w/2,y:Render.h-100,vy:0};this.pls=[{x:Render.w/2,y:Render.h-50}];} upd(){if(Input.l)this.p.x-=5;if(Input.r)this.p.x+=5;this.p.y+=this.p.vy;this.p.vy+=0.5;if(this.t++%(40-this.lv)==0)this.pls.push({x:Math.random()*Render.w,y:0});this.pls.forEach(p=>{p.y+=2;if(this.p.vy>0&&Math.abs(this.p.x-p.x)<40&&Math.abs(this.p.y-p.y)<15)this.p.vy=-10});if(this.p.y>Render.h)this.fail();this.score=Math.floor(this.t/10);if(this.score>80+this.lv*20)this.win();} drw(){Render.Draw.clear('#87CEEB');Render.Draw.player(this.p.x,this.p.y,'#00f');this.pls.forEach(p=>Render.Draw.box(p.x-20,p.y,40,10,'#0f0'));} }
-class GMem extends GBase { start(){this.seq=[];this.pl=[];this.mode=0;this.add();} add(){this.seq.push(Math.floor(Math.random()*4));this.mode=0;this.tm=0;} upd(){if(this.mode==0){if(this.t++%(60-this.lv)==0){this.tm++;if(this.tm>this.seq.length)this.mode=1}}else{let k=-1;if(Input.u)k=0;if(Input.d)k=1;if(Input.l)k=2;if(Input.r)k=3;if(k!=-1){Input.u=Input.d=Input.l=Input.r=0;if(k==this.seq[this.pl.length]){this.pl.push(k);if(this.pl.length==this.seq.length){this.pl=[];this.score++;this.add();this.t=0}}else this.fail()}}if(this.score>=3+this.lv)this.win();} drw(){Render.Draw.clear('#222');let a=this.mode==0&&this.tm<this.seq.length?this.seq[this.tm]:null;Render.Draw.box(Render.w/2-40,100,80,80,a==0?'#fff':'#444');Render.Draw.box(Render.w/2-40,300,80,80,a==1?'#fff':'#444');Render.Draw.box(Render.w/2-140,200,80,80,a==2?'#fff':'#444');Render.Draw.box(Render.w/2+60,200,80,80,a==3?'#fff':'#444');} }
-
-const Games = [
-    {t:'g_maze', c:GMaze, i:"🗺️", bg:'#2c3e50', h:"WASD / Arrow Keys"}, 
-    {t:'g_space', c:GSpace, i:"🚀", bg:'#000', h:"Left/Right + A"},
-    {t:'g_snake', c:GSnake, i:"🐍", bg:'#254', h:"Arrow Keys"},
-    {t:'g_rhythm', c:GRhy, i:"🎵", bg:'#111', h:"D F J K"},
-    {t:'g_dodge', c:GDodge, i:"💢", bg:'#333', h:"Arrow Keys"},
-    {t:'g_click', c:GClick, i:"⛏️", bg:'#443', h:"Spam A"},
-    {t:'g_jump', c:GJumper, i:"🦘", bg:'#87CEEB', h:"Left/Right"},
-    {t:'g_break', c:GBreak, i:"🧱", bg:'#222', h:"Left/Right"},
-    {t:'g_mem', c:GMem, i:"🧠", bg:'#222', h:"Memorize & Repeat"},
-    {t:'g_race', c:GRace, i:"🏎️", bg:'#555', h:"Left/Right"},
-    {t:'g_horror', c:GPong, i:"🏓", bg:'#222', h:"Left/Right"}, 
-    {t:'g_puzzle', c:GDrop, i:"🏗️", bg:'#333', h:"A to Drop"}
+// --- 0. DATA DEFINITIONS ---
+window.GamesList = [
+    {id:1, n:'迷宮逃脫', i:'🧩', desc:'使用方向鍵移動，找到綠色出口。', ctrl:'方向鍵: 移動'},
+    {id:2, n:'貪食蛇', i:'🐍', desc:'吃掉紅色蘋果變長，小心別撞到自己。', ctrl:'方向鍵: 移動'},
+    {id:3, n:'彈球王者', i:'🏓', desc:'控制擋板反彈球，不要讓球掉落。', ctrl:'上/下: 移動'},
+    {id:4, n:'打磚塊', i:'🧱', desc:'發射球並擊碎所有磚塊。', ctrl:'左/右: 移動'},
+    {id:5, n:'閃避大師', i:'🏃', desc:'躲避從天而降的障礙物。', ctrl:'左/右: 移動'},
+    {id:6, n:'太空大戰', i:'🚀', desc:'駕駛飛船射擊敵人，躲避子彈。', ctrl:'移動+A射擊'},
+    {id:7, n:'飛揚小鳥', i:'🐦', desc:'按 A 鍵飛行，穿過水管縫隙。', ctrl:'A: 飛行'},
+    {id:8, n:'跳跳樂', i:'🦘', desc:'在平台間跳躍上升，掉落即失敗。', ctrl:'左/右: 移動'},
+    {id:9, n:'接接樂', i:'🧺', desc:'接住黃色金幣，避開紅色炸彈。', ctrl:'左/右: 移動'},
+    {id:10, n:'記憶翻牌', i:'🧠', desc:'翻開兩張相同的牌來消除它們。', ctrl:'方向鍵+A翻牌'},
+    {id:11, n:'數學問答', i:'➕', desc:'快速計算並選擇正確答案。', ctrl:'左/右選擇+A'},
+    {id:12, n:'點擊大師', i:'👆', desc:'在時間內瘋狂點擊 A 鍵達到目標。', ctrl:'A: 點擊'},
+    {id:13, n:'節奏音符', i:'🎵', desc:'當音符落下時按下對應方向鍵。', ctrl:'左/右: 擊打'},
+    {id:14, n:'坦克大戰', i:'🚜', desc:'移動坦克並射擊敵人，保護自己。', ctrl:'移動+A開火'},
+    {id:15, n:'青蛙過街', i:'🐸', desc:'穿過繁忙的車流到達對岸。', ctrl:'方向鍵: 跳躍'},
+    {id:16, n:'基地防禦', i:'🛡️', desc:'(太空變體) 敵人速度更快，守護基地。', ctrl:'移動+A射擊'},
+    {id:17, n:'忍者切水果', i:'⚔️', desc:'(接接樂變體) 快速接住水果。', ctrl:'左/右: 移動'},
+    {id:18, n:'地雷區', i:'💣', desc:'(迷宮變體) 隱形障礙物更多。', ctrl:'方向鍵: 移動'},
+    {id:19, n:'數字收集', i:'🔢', desc:'(接接樂變體) 收集數字，避開錯誤。', ctrl:'左/右: 移動'},
+    {id:20, n:'幸運拉霸', i:'🎰', desc:'按下 A 鍵停止，湊齊三個相同圖案。', ctrl:'A: 停止'},
+    {id:21, n:'天才釣手', i:'🎣', desc:'(點擊變體) 保持力度在綠色區間。', ctrl:'A: 拉桿'},
+    {id:22, n:'氣球防衛', i:'🎈', desc:'(太空變體) 保護氣球不被刺破。', ctrl:'移動+A攻擊'},
+    {id:23, n:'打地鼠', i:'🔨', desc:'地鼠出現時按下對應方向鍵。', ctrl:'左/右: 打擊'},
+    {id:24, n:'月球登陸', i:'🌑', desc:'(飛鳥變體) 控制噴射，安全著陸。', ctrl:'A: 噴射'},
+    {id:25, n:'堆高高', i:'🏗️', desc:'(跳躍變體) 將方塊堆疊到最高。', ctrl:'A: 放置'},
+    {id:26, n:'寶石迷陣', i:'💎', desc:'(記憶變體) 消除同色寶石。', ctrl:'選擇+A消除'},
+    {id:27, n:'數獨挑戰', i:'📅', desc:'(數學變體) 填入缺少的數字。', ctrl:'選擇+A填入'},
+    {id:28, n:'打字練習', i:'⌨️', desc:'(數學變體) 快速輸入指令。', ctrl:'方向鍵輸入'},
+    {id:29, n:'色彩辨識', i:'🎨', desc:'(記憶變體) 記住顏色順序。', ctrl:'方向鍵選擇'},
+    {id:30, n:'行星軌道', i:'🪐', desc:'(閃避變體) 在圓形軌道上躲避。', ctrl:'左/右: 移動'},
+    {id:31, n:'狙擊手', i:'🎯', desc:'(坦克變體) 瞄準並射擊目標。', ctrl:'瞄準+A射擊'},
+    {id:32, n:'外星入侵', i:'👾', desc:'(太空變體) 敵人數量加倍。', ctrl:'移動+A射擊'},
+    {id:33, n:'水滴接力', i:'💧', desc:'(接接樂變體) 接住水滴，不要漏接。', ctrl:'左/右: 移動'},
+    {id:34, n:'壁球', i:'🎾', desc:'(彈球變體) 對著牆壁打球。', ctrl:'上/下: 移動'},
+    {id:35, n:'3D迷宮', i:'🧊', desc:'(迷宮變體) 視野受限的迷宮。', ctrl:'方向鍵: 移動'},
+    {id:36, n:'賽車手', i:'🏎️', desc:'(青蛙變體) 在賽道上超車。', ctrl:'左/右: 轉向'},
+    {id:37, n:'攀岩', i:'🪜', desc:'(跳躍變體) 向上攀爬，小心落石。', ctrl:'左/右: 移動'},
+    {id:38, n:'西蒙說', i:'🔔', desc:'(記憶變體) 跟隨聲音和燈光。', ctrl:'方向鍵模仿'},
+    {id:39, n:'極速蛇', i:'🐉', desc:'(貪食蛇變體) 速度極快，無牆壁模式。', ctrl:'方向鍵轉向'},
+    {id:40, n:'終極魔王', i:'👹', desc:'(太空變體) 對抗巨大的 Boss！', ctrl:'閃避+A攻擊'}
 ];
 
-const Eng = (function() {
-    let act=null, loopId, paused=false, gIdx=0;
-    
-    function stopLoop() {
-        if(loopId) { cancelAnimationFrame(loopId); loopId = null; }
-    }
+window.Storage = { get: k=>localStorage.getItem(k), set: (k,v)=>localStorage.setItem(k,v) };
 
-    function start(idx, level=1) {
-        gIdx = idx;
-        const g = Games[idx];
-        const name = Lang.t(g.t);
-        const controls = g.c === GRhy ? "<span class='key-hint'>D</span><span class='key-hint'>F</span><span class='key-hint'>J</span><span class='key-hint'>K</span>" : 
-                         g.c === GClick ? "<span class='key-hint'>A (Space)</span>" : 
-                         "<span class='key-hint'>↑↓←→</span> <span class='key-hint'>A</span>";
+// --- 1. SYSTEM (30 ITEMS) ---
+window.Sys = {
+    u: { id:'Guest', coins:1000, gems:10, lv:1, exp:0, bag:[], spd:0, theme:'def' },
+    items: [
+        // 消耗品
+        {id:'hp', t:'生命藥水 (+50 HP)', p:100, i:'❤️', type:'con'},
+        {id:'rev', t:'復活十字架', p:500, i:'✝️', type:'con'},
+        {id:'bomb', t:'核彈 (開局清場)', p:800, i:'💣', type:'con'},
+        {id:'energy', t:'能量飲 (開局加速)', p:300, i:'⚡', type:'con'},
+        {id:'ticket', t:'跳關券 (直接過關)', p:1000, i:'🎟️', type:'con'},
+        // 被動技能
+        {id:'spd', t:'速度之靴 (永久)', p:1000, i:'👟', type:'perm'},
+        {id:'mag', t:'強力磁鐵 (永久)', p:1500, i:'🧲', type:'perm'},
+        {id:'shield', t:'能量護盾 (永久)', p:2000, i:'🛡️', type:'perm'},
+        {id:'luck', t:'幸運草 (金幣+)', p:3000, i:'🍀', type:'perm'},
+        {id:'exp', t:'智慧之書 (經驗+)', p:3000, i:'📘', type:'perm'},
+        {id:'slow', t:'時光懷錶 (緩速)', p:3500, i:'❄️', type:'perm'},
+        {id:'regen', t:'再生之心 (回血)', p:4000, i:'💖', type:'perm'},
+        {id:'maxhp', t:'泰坦腰帶 (+HP)', p:4500, i:'🥋', type:'perm'},
+        {id:'jump', t:'二段跳羽毛', p:5000, i:'🪶', type:'perm'},
+        {id:'vamp', t:'吸血鬼之牙', p:6000, i:'🧛', type:'perm'},
+        {id:'greed', t:'貪婪戒指 (金幣x2)', p:8000, i:'💍', type:'perm'},
+        {id:'discount', t:'會員卡 (商店8折)', p:10000, i:'💳', type:'perm'},
+        {id:'thorn', t:'反傷刺甲', p:5500, i:'🌵', type:'perm'},
+        // 介面主題
+        {id:'skin1', t:'黃金主題', p:5000, i:'🏆', type:'skin'},
+        {id:'skin2', t:'鑽石主題', p:10000, i:'💠', type:'skin'},
+        {id:'skin_dark', t:'暗黑模式', p:2000, i:'🌑', type:'skin'},
+        {id:'skin_neon', t:'霓虹派對', p:3000, i:'🎆', type:'skin'},
+        {id:'skin_retro', t:'復古像素', p:2500, i:'🕹️', type:'skin'},
+        {id:'skin_forest', t:'森林秘境', p:3000, i:'🌲', type:'skin'},
+        {id:'skin_fire', t:'地獄烈火', p:4000, i:'🔥', type:'skin'},
+        {id:'skin_pink', t:'粉紅夢境', p:3500, i:'🌸', type:'skin'},
+        {id:'skin_matrix', t:'駭客任務', p:6000, i:'💻', type:'skin'},
+        {id:'skin_sky', t:'天空之城', p:4500, i:'☁️', type:'skin'},
+        // 玩家特效
+        {id:'trail_rain', t:'彩虹拖尾', p:5000, i:'🌈', type:'perm'},
+        {id:'trail_fire', t:'火焰拖尾', p:4000, i:'🔥', type:'perm'},
+        {id:'trail_bub', t:'泡泡特效', p:3500, i:'🫧', type:'perm'}
+    ],
+    login: function() {
+        var id = document.getElementById('uid').value.trim() || "Guest";
+        try { var sv = Storage.get('rbx_v64_'+id); if(sv) this.u = JSON.parse(sv); } catch(e) {}
+        this.u.id = id; if(!this.u.bag) this.u.bag=[];
+        this.upd(); window.Layer.sw('l-menu'); this.applyTheme(); window.Menu.init(); 
+    },
+    save: function() { Storage.set('rbx_v64_'+this.u.id, JSON.stringify(this.u)); this.upd(); },
+    upd: function() {
+        document.getElementById('m-id').innerText = this.u.id;
+        document.getElementById('m-coin').innerText = this.u.coins;
+        document.getElementById('m-gem').innerText = this.u.gems;
+        document.getElementById('m-lv').innerText = this.u.lv;
+        document.getElementById('m-exp').style.width = Math.min(100, (this.u.exp/(this.u.lv*100))*100) + '%';
+    },
+    gainExp: function(amt) {
+        if(this.has('exp')) amt = Math.floor(amt * 1.5);
+        this.u.exp += amt;
+        if(this.u.exp >= this.u.lv*100) { this.u.exp -= this.u.lv*100; this.u.lv++; this.u.coins += 200; window.toast("升級！LV."+this.u.lv); }
+        this.save();
+    },
+    gacha: function() {
+        if(this.u.coins < 200) return window.toast("金幣不足 ($200)", true);
+        this.u.coins -= 200;
+        var r=Math.random(), msg="", icon="";
+        if(r<0.35) { var c=100+Math.floor(Math.random()*300); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
+        else if(r<0.55) { var g=10+Math.floor(Math.random()*30); this.u.gems+=g; msg=`+${g} 寶石`; icon="💎"; }
+        else { 
+            var it = this.items[Math.floor(Math.random()*this.items.length)];
+            if(it.type!=='con' && this.has(it.id)) { this.u.coins+=500; msg="重複補償 $500"; icon="🪙"; }
+            else { this.u.bag.push(it.id); msg=it.t; icon=it.i; if(it.type==='skin') this.applyTheme(); }
+        }
+        document.getElementById('gm-glass').innerText = icon;
+        this.save(); window.Menu.init();
+        window.Layer.modal("恭喜獲得！", `<div style='font-size:3rem; margin:10px'>${icon}</div><br>${msg}`, `<button class="primary" onclick="window.Layer.close()">確定</button>`);
+    },
+    buy: function(i) {
+        var it = this.items[i];
+        var price = it.p;
+        if(this.has('discount')) price = Math.floor(price * 0.8);
         
-        let savedLv = (Sys.user.progress && Sys.user.progress[idx]) ? Sys.user.progress[idx] : 0;
-        let startLv = level > 1 ? level : (savedLv > 0 ? savedLv + 1 : 1);
-        
-        Layer.modal(name, 
-            `${Lang.t('hud_level')} ${startLv}<br>
-             <p style="color:#aaa; font-size:14px; margin:10px 0;">${g.h}</p>
-             <div>${controls}</div>`, 
-            `<button class="btn btn-blue" onclick="Eng.realStart(${idx}, ${startLv})">${Lang.t('btn_continue')}</button>
-             ${savedLv > 0 && startLv > 1 ? `<button class="btn btn-red" onclick="Eng.realStart(${idx}, 1)">${Lang.t('btn_retry')}</button>` : ''}`
+        if(this.u.coins >= price) {
+            if(it.type!=='con' && this.has(it.id)) return window.toast("已擁有！");
+            this.u.coins -= price; this.u.bag.push(it.id);
+            if(it.type==='skin') this.applyTheme();
+            this.save(); window.Menu.init(); window.toast("購買成功！");
+        } else window.toast("金幣不足！", true);
+    },
+    has: function(id){ return this.u.bag.includes(id); },
+    use: function(id){ var i=this.u.bag.indexOf(id); if(i>-1){ this.u.bag.splice(i,1); this.save(); return true; } return false; },
+    applyTheme: function() {
+        document.body.className = '';
+        var skins = ['skin1','skin2','skin_dark','skin_neon','skin_retro','skin_forest','skin_fire','skin_pink','skin_matrix','skin_sky'];
+        skins.forEach(s => { if(this.has(s)) document.body.classList.add('theme-'+s.replace('skin_','').replace('skin1','gold').replace('skin2','diamond')); });
+    }
+};
+
+// --- 2. MENU ---
+window.Menu = {
+    init: function() {
+        var g = document.getElementById('p-games'); 
+        if(g) {
+            g.innerHTML = '';
+            window.GamesList.forEach(function(x){ g.innerHTML += `<div class="card" onclick="window.Menu.sel(${x.id})"><div class="c-icon">${x.i}</div><div class="c-txt">${x.id}. ${x.n}</div></div>`; });
+        }
+        var s = document.getElementById('p-shop');
+        if(s) {
+            s.innerHTML = '';
+            window.Sys.items.forEach(function(x,i){ 
+                var own = x.type!=='con' && window.Sys.has(x.id);
+                var col = x.type==='con' ? 'tag-con' : (x.type==='skin'?'tag-skin':'tag-perm');
+                var price = x.p; if(window.Sys.has('discount')) price = Math.floor(price * 0.8);
+                s.innerHTML += `<div class="card" onclick="window.Sys.buy(${i})" style="opacity:${own?0.5:1}"><div class="item-tag ${col}">${x.type=='con'?'消耗':(x.type=='skin'?'外觀':'永久')}</div><div class="c-icon">${x.i}</div><div class="c-txt">${x.t}</div><div style="color:var(--accent);font-size:0.9rem">$${price}</div></div>`; 
+            });
+        }
+        var b = document.getElementById('p-bag');
+        if(b) {
+            var bi = window.Sys.u.bag.map(id=>window.Sys.items.find(x=>x.id==id)).filter(x=>x);
+            b.innerHTML = bi.map(it=>`<div class="card"><div class="c-icon">${it.i}</div><div class="c-txt">${it.t}</div></div>`).join('') || '<div class="empty-state">背包空空的</div>';
+        }
+    },
+    sw: function(t, el) {
+        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); if(el) el.classList.add('active');
+        ['games','gacha','shop','bag','ai'].forEach(x=>{var e=document.getElementById('p-'+x); if(e)e.style.display='none'});
+        var tg = document.getElementById('p-'+t);
+        if(tg) tg.style.display = (t==='gacha' || t==='ai')?'flex':'grid';
+    },
+    sel: function(id) {
+        var g = window.GamesList.find(x=>x.id==id);
+        window.Layer.modal(g.n, 
+            `<div style="text-align:left; background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; font-size:0.95rem; margin-bottom:15px; border:1px solid rgba(255,255,255,0.1)">
+                <div style="margin-bottom:8px;">📝 ${g.desc}</div>
+                <div style="color:var(--primary); font-weight:bold;">🎮 ${g.ctrl}</div>
+            </div>選擇難度：`, 
+            `<div class="diff-opt" onclick="window.Eng.start(${id},1)"><span>簡單 (Easy)</span><span style="color:#aaa">x1.0</span></div>
+            <div class="diff-opt" onclick="window.Eng.start(${id},2)" style="border-color:#4dabf7"><span>普通 (Normal)</span><span style="color:#aaa">x1.5</span></div>
+            <div class="diff-opt" onclick="window.Eng.start(${id},3)" style="border-color:#ff6b6b"><span>困難 (Hard)</span><span style="color:#aaa">x2.5</span></div>
+            <button style="margin-top:10px; background:transparent; width:100%; border:1px solid #555" onclick="window.Layer.close()">取消</button>`
         );
     }
+};
 
-    function realStart(idx, level) {
-        Layer.closeModal();
-        stopLoop();
+window.Layer = {
+    sw: function(id) { document.querySelectorAll('.layer').forEach(l=>l.classList.remove('active')); document.getElementById(id).classList.add('active'); },
+    modal: function(t,b,f) { document.getElementById('mo-t').innerHTML=t; document.getElementById('mo-b').innerHTML=b; document.getElementById('mo-f').innerHTML=f; document.getElementById('l-modal').classList.add('active'); },
+    close: function() { document.getElementById('l-modal').classList.remove('active'); }
+};
+window.toast = function(m,e) { var t=document.getElementById('toast'); t.innerText=m; t.style.borderColor=e?'#f55':'#555'; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); };
+
+// --- ENGINE ---
+var Inp = { u:0,d:0,l:0,r:0,a:0,b:0 };
+function setKey(c,s) { if(['ArrowUp','w'].includes(c)) Inp.u=s; if(['ArrowDown','s'].includes(c)) Inp.d=s; if(['ArrowLeft','a'].includes(c)) Inp.l=s; if(['ArrowRight','d'].includes(c)) Inp.r=s; if(['z',' ','Enter'].includes(c)) Inp.a=s; if(['x'].includes(c)) Inp.b=s; }
+window.onkeydown=e=>setKey(e.key,1); window.onkeyup=e=>setKey(e.key,0);
+document.querySelectorAll('.btn-c, .btn-act').forEach(b=>{
+    b.addEventListener('mousedown', e=>{e.preventDefault(); setKey(b.dataset.k,1)});
+    b.addEventListener('touchstart', e=>{e.preventDefault(); setKey(b.dataset.k,1)});
+    b.addEventListener('mouseup', e=>{e.preventDefault(); setKey(b.dataset.k,0)});
+    b.addEventListener('touchend', e=>{e.preventDefault(); setKey(b.dataset.k,0)});
+});
+
+var Cvs = document.getElementById('cvs'), Ctx = Cvs.getContext('2d');
+var W, H;
+function Res() { W=Cvs.width=Cvs.parentElement.clientWidth; H=Cvs.height=Cvs.parentElement.clientHeight; }
+window.onresize = Res;
+
+var GBase = class {
+    constructor(id, lv) { 
+        this.gid=id; this.blv=lv; this.st=1; this.sc=0; this.hp=100; this.mod=1; this.t=0;
+        this.over = false; // 核心修正：初始為 false
+        this.sh=window.Sys.has('shield'); 
+        this.regen=window.Sys.has('regen');
+        this.vamp=window.Sys.has('vamp');
+        this.thorn=window.Sys.has('thorn');
+    }
+    init() { 
+        if(window.Sys.has('maxhp')) this.hp += 50;
+        if(window.Sys.use('hp')) { this.hp+=50; window.toast("已使用生命藥水"); } 
+        if(window.Sys.use('energy')) { this.t+=500; window.toast("能量飲加速！"); }
+        if(window.Sys.use('bomb')) { this.sc+=50; window.toast("核彈清場！"); }
+        if(window.Sys.use('ticket')) { this.win(); return; }
+        this.setSt(); this.drawBuffs(); 
+    }
+    drawBuffs() { 
+        var h = '';
+        if(this.sh) h+='<div class="buff">🛡️</div>'; 
+        if(window.Sys.has('luck')) h+='<div class="buff">🍀</div>';
+        if(this.regen) h+='<div class="buff">💖</div>';
+        document.getElementById('g-buffs').innerHTML = h; 
+    }
+    setSt() { this.mod=(this.blv*0.5)+(this.st*0.1); this.rst(); window.toast("第 "+this.st+" 關"); }
+    rst() {}
+    
+    // VISUALS
+    bg() { 
+        Ctx.fillStyle='rgba(20,20,25,0.3)'; Ctx.fillRect(0,0,W,H);
+        Ctx.strokeStyle = 'rgba(77, 171, 247, 0.1)'; Ctx.lineWidth = 1;
+        var off = (Date.now()/50)%40;
+        for(var i=0;i<W;i+=40) { Ctx.beginPath(); Ctx.moveTo(i,0); Ctx.lineTo(i,H); Ctx.stroke(); }
+        for(var i=off-40;i<H;i+=40) { Ctx.beginPath(); Ctx.moveTo(0,i); Ctx.lineTo(W,i); Ctx.stroke(); }
+    }
+    dp(x,y,w,h) { 
+        if(!isFinite(x) || !isFinite(y)) return;
+        var cx=x+w/2, cy=y+h/2, r=w/2; 
+        var g=Ctx.createRadialGradient(cx-r/3,cy-r/3,r/5,cx,cy,r); g.addColorStop(0,'#a5d8ff'); g.addColorStop(0.3,'#4dabf7'); g.addColorStop(1,'#1864ab');
+        Ctx.fillStyle=g; Ctx.beginPath(); Ctx.arc(cx,cy,r,0,6.28); Ctx.fill(); 
+        Ctx.fillStyle='rgba(255,255,255,0.6)'; Ctx.beginPath(); Ctx.arc(cx-r/2.5,cy-r/2.5,r/4,0,6.28); Ctx.fill();
         
-        const g = Games[idx];
-        act = new g.c(g.cfg || {}, level);
-        act.start(); paused=false; 
-        document.getElementById('ctrl-std').style.display = (g.c === GRhy || g.c === GMem) ? 'none' : 'block';
-        document.getElementById('ctrl-rhy').style.display = (g.c === GRhy) ? 'block' : 'none';
-        Layer.sw('l-game');
-        loop();
+        // Trail FX
+        if(window.Sys.has('trail_rain')) this.part(x,y,`hsl(${Date.now()%360},70%,50%)`);
+        else if(window.Sys.has('trail_fire')) this.part(x,y,'#ff6b6b');
+        else if(window.Sys.has('trail_bub')) { if(this.t%5==0) this.part(x,y,'rgba(255,255,255,0.5)'); }
     }
-    
-    function loop() {
-        if(paused) return;
-        if(act) {
-            act.upd(); Render.Draw.clear(act.cfg?.bg); act.drw(); 
-            document.getElementById('g-lvl').innerText = act.lv; document.getElementById('g-scr').innerText = act.score;
-            document.getElementById('g-hp').innerText = Math.max(0, Math.floor(act.hp));
-        }
-        loopId = requestAnimationFrame(loop);
+    de(x,y,w,h,c='#ff6b6b') { 
+        if(!isFinite(x) || !isFinite(y)) return;
+        Ctx.shadowBlur = 10; Ctx.shadowColor = c; Ctx.fillStyle=c; Ctx.fillRect(x,y,w,h); Ctx.shadowBlur = 0;
+        Ctx.fillStyle='rgba(0,0,0,0.2)'; Ctx.fillRect(x+w-4,y,4,h); Ctx.fillRect(x,y+h-4,w,4);
+        Ctx.fillStyle='rgba(255,255,255,0.2)'; Ctx.fillRect(x,y,w-4,4); Ctx.fillRect(x,y,4,h-4);
     }
-    
-    function pause() { 
-        paused = true;
-        stopLoop();
-        Layer.modal(Lang.t('modal_pause'), Lang.t('modal_rest'), 
-            `<button class="btn btn-blue" onclick="Eng.resume()">${Lang.t('btn_continue')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
+    dc(x,y,r) {
+        if(!isFinite(x) || !isFinite(y) || r<=0) return;
+        var g=Ctx.createRadialGradient(x-r/3,y-r/3,1,x,y,r); g.addColorStop(0,'#ffd43b'); g.addColorStop(1,'#f08c00');
+        Ctx.fillStyle=g; Ctx.beginPath(); Ctx.arc(x,y,r,0,6.28); Ctx.fill();
+        Ctx.strokeStyle='rgba(255,255,255,0.5)'; Ctx.lineWidth=2; Ctx.stroke();
     }
-    
-    function resume() {
-        paused = false;
-        Layer.closeModal();
-        loop();
-    }
-    
-    function over(win) { 
-        paused = true;
-        stopLoop();
-        if(win) {
-            let r = 50 + act.lv*10; Sys.user.coins += r; 
-            if(!Sys.user.progress) Sys.user.progress = {};
-            if(!Sys.user.progress[gIdx] || act.lv > Sys.user.progress[gIdx]) Sys.user.progress[gIdx] = act.lv;
-            Sys.addExp(100);
-            Sys.save();
-            Layer.modal(Lang.t('msg_win'), `${Lang.t('msg_get_coin')}: ${r}`, `<button class="btn btn-green" onclick="Eng.next()">${Lang.t('btn_next')}</button> <button class="btn btn-blue" onclick="Eng.quit()">${Lang.t('btn_lobby')}</button>`);
-        } else {
-            let reviveBtn = (Sys.user.gems >= 5 || Sys.hasItem('revive')) ? `<button class="btn btn-gold" onclick="Eng.revive()">💎 ${Lang.t('i_rev')} (${Sys.hasItem('revive')?'Item':'5 Gems'})</button>` : '';
-            Layer.modal(Lang.t('msg_fail'), "", `${reviveBtn} <button class="btn btn-blue" onclick="Eng.retry()">${Lang.t('btn_retry')}</button> <button class="btn btn-red" onclick="Eng.quit()">${Lang.t('btn_exit')}</button>`);
-        }
-    }
-    
-    function next() { realStart(gIdx, act.lv+1); }
-    function retry() { realStart(gIdx, act.lv); }
-    
-    function revive() {
-        let itemIdx = Sys.user.bag.findIndex(i => i.id === 'revive');
-        if(itemIdx > -1) {
-            Sys.user.bag.splice(itemIdx, 1);
-            Sys.toast(Lang.t('i_rev') + " Used!");
-        } else if (Sys.user.gems >= 5) {
-            Sys.user.gems -= 5;
-            Sys.toast("-5 Gems");
-        } else {
-            return Sys.toast(Lang.t('toast_no_money'), true);
-        }
-        Sys.save(); paused=false; act.hp=100; Layer.closeModal(); loop();
+    part(x,y,c) {
+        if(!isFinite(x) || !isFinite(y)) return;
+        Ctx.fillStyle=c; Ctx.beginPath(); Ctx.arc(x+(Math.random()*20-10), y+(Math.random()*20-10), Math.random()*3, 0, 6.28); Ctx.fill();
     }
 
-    function skip() {
-        let itemIdx = Sys.user.bag.findIndex(i => i.id === 'key');
-        if(itemIdx > -1) {
-            Sys.user.bag.splice(itemIdx, 1);
-            Sys.toast(Lang.t('i_key') + " Used!");
-            over(true);
-        } else if (Sys.user.gems >= 10) {
-            Sys.user.gems -= 10;
-            Sys.toast("-10 Gems");
-            over(true);
-        } else {
-            return Sys.toast(Lang.t('toast_no_money'), true);
-        }
+    hurt(d) { 
+        if(this.sh){this.sh=0; this.drawBuffs(); window.toast("護盾格擋！"); return;} 
+        this.hp-=d; 
+        Cvs.style.transform=`translate(${Math.random()*10-5}px,${Math.random()*10-5}px)`; 
+        setTimeout(()=>Cvs.style.transform='none',50); 
+        Ctx.fillStyle='rgba(255,0,0,0.3)'; Ctx.fillRect(0,0,W,H);
+        if(this.hp<=0) { this.over = true; window.Eng.over(0); } // LOCK
     }
+    win() { 
+        this.over = true; // LOCK
+        window.Eng.stop(); 
+        var c=Math.max(100, Math.floor(100*this.mod)); 
+        if(window.Sys.has('luck')) c=Math.floor(c*1.5); 
+        if(window.Sys.has('greed')) c=c*2;
+        window.Sys.u.coins+=c; window.Sys.gainExp(50); window.Sys.save(); 
+        window.Layer.modal("過關成功！", `獲得 ${c} 金幣`, `<button class="primary" onclick="window.Layer.close(); window.Eng.next()">下一關</button><button onclick="window.Eng.quit()" style="background:transparent;margin-top:5px;border:1px solid #555">離開</button>`); 
+    }
+    hit(a,b) { 
+        var collision = a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; 
+        if(collision && this.thorn) this.part(b.x,b.y,'#fff');
+        return collision;
+    }
+    rnd(n) { return Math.random()*n; }
+    tick() { this.t++; if(this.regen && this.t%60===0 && this.hp<200) this.hp++; }
+};
 
-    function quit() { stopLoop(); act=null; Layer.sw('l-menu'); Layer.closeModal(); }
-    
-    return { start, realStart, pause, resume, quit, over, next, retry, revive, skip };
-})();
-
-const Menu = {
-    init: () => { Menu.renderGames(); Menu.renderShop(); Menu.renderBag(); },
-    renderGames: () => { document.getElementById('p-games').innerHTML = Games.map((g,i)=>`<div class="game-card" onclick="Eng.start(${i})"><span class="icon-img">${g.i}</span><h4 data-t="${g.t}">${Lang.t(g.t)}</h4></div>`).join(''); },
-    renderShop: () => { document.getElementById('p-shop').innerHTML = Sys.items.map((it,i)=>`<div class="shop-item"><div style="font-size:24px;">${it.icon}</div><h4 data-t="${it.t}">${Lang.t(it.t)}</h4><p data-t="${it.d}">${Lang.t(it.d)}</p><button class="btn btn-gold" onclick="Sys.buy(${i})"><span data-t="shop_buy">${Lang.t('shop_buy')}</span> 💰 ${it.price}</button></div>`).join(''); },
-    renderBag: () => { 
-        const bag = document.getElementById('p-bag');
-        if(Sys.user.bag.length === 0) bag.innerHTML = `<div style='grid-column:1/-1; text-align:center; color:#666;' data-t="bag_empty">${Lang.t('bag_empty')}</div>`;
-        else bag.innerHTML = Sys.user.bag.map(it=>`<div class="shop-item" style="border-color:var(--primary)"><h4 data-t="${it.t}">${Lang.t(it.t)}</h4><p data-t="bag_equip">${Lang.t('bag_equip')}</p><p>${it.icon}</p></div>`).join('');
+window.Eng = {
+    g: null, loopId: 0,
+    start: function(id, lv) {
+        this.stop(); window.Layer.close(); window.Layer.sw('l-game'); Res();
+        var C = GC[id] || GC[99]; this.g = new C(id, lv); this.g.init(); this.loop();
     },
-    sw: (tab, el) => {
-        if(el) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
-        document.querySelectorAll('.content').forEach(c=>{c.classList.remove('active-grid'); c.classList.remove('active-block'); c.style.display='none';});
-        const target = document.getElementById('p-'+tab);
-        target.style.display = 'grid'; 
-        if(tab === 'ai') target.style.display = 'block';
-        else target.classList.add('active-grid');
+    next: function() { 
+        window.Layer.close(); 
+        if(this.g){ if(!this.loopId) this.loop(); this.g.st++; this.g.setSt(); this.g.over = false; } 
+    },
+    loop: function() {
+        if(!window.Eng.g || window.Eng.g.over) return; // CRITICAL CHECK
+        window.Eng.g.bg(); window.Eng.g.tick(); window.Eng.g.upd(); window.Eng.g.drw();
+        document.getElementById('g-sc').innerText = Math.floor(window.Eng.g.sc);
+        document.getElementById('g-st').innerText = window.Eng.g.st;
+        document.getElementById('g-hp').innerText = Math.max(0, Math.floor(window.Eng.g.hp));
+        window.Eng.loopId = requestAnimationFrame(window.Eng.loop);
+    },
+    stop: function() { cancelAnimationFrame(this.loopId); this.loopId = 0; },
+    pause: function() { this.stop(); window.Layer.modal("遊戲暫停", "", `<button class="primary" onclick="window.Layer.close(); window.Eng.loop()">繼續</button><button onclick="window.Eng.quit()" style="margin-top:10px; background:transparent; border:1px solid #555">離開</button>`); },
+    over: function(win) { 
+        this.stop(); 
+        if(!win && window.Sys.use('rev')){this.g.hp=100; this.g.over=false; window.toast("復活成功！"); this.loop(); return;} 
+        // Retry with correct ID
+        window.Layer.modal(win?"勝利":"失敗", "得分: "+Math.floor(this.g.sc), `<button class="primary" onclick="window.Eng.start(${this.g.gid},${this.g.blv})">重試</button><button onclick="window.Eng.quit()" style="margin-top:10px; background:transparent; border:1px solid #555">離開</button>`); 
+    },
+    quit: function() { 
+        this.stop(); this.g=null; 
+        window.Layer.close(); window.Layer.sw('l-menu'); 
     }
 };
 
-const AI = {
-    ask: () => {
-        const t = document.getElementById('chat-in').value;
-        const h = document.getElementById('chat-hist');
-        h.innerHTML += `<div style="color:#aaa; margin-top:5px;">Q: ${t}</div>`;
-        document.getElementById('chat-in').value = '';
-        setTimeout(()=> { h.innerHTML += `<div style="color:var(--primary); margin-top:5px;">AI: ${Lang.t('ai_welcome')}</div>`; h.scrollTop = h.scrollHeight; }, 500);
+// --- GAMES ---
+var GC = {};
+
+GC[1] = class extends GBase { rst(){this.p={x:20,y:20,w:20,h:20}; this.g={x:W-40,y:H-40,w:30,h:30}; this.obs=[]; for(var i=0;i<5+this.st*2;i++)this.obs.push({x:this.rnd(W),y:this.rnd(H),w:30+this.rnd(50),h:30+this.rnd(50)});} upd(){var s=3+(window.Sys.u.spd?1:0); if(Inp.u)this.p.y-=s; if(Inp.d)this.p.y+=s; if(Inp.l)this.p.x-=s; if(Inp.r)this.p.x+=s; if(this.obs.some(o=>this.hit(this.p,o)))this.hurt(2); if(this.hit(this.p,this.g))this.win();} drw(){this.dp(this.p.x,this.p.y,20,20); Ctx.fillStyle='#51cf66'; Ctx.shadowBlur=15; Ctx.shadowColor='#51cf66'; Ctx.fillRect(this.g.x,this.g.y,30,30); Ctx.shadowBlur=0; this.obs.forEach(o=>this.de(o.x,o.y,o.w,o.h,'#343a40'));}};
+GC[2] = class extends GBase { rst(){this.sz=20; this.sn=[{x:10,y:10}]; this.d={x:1,y:0}; this.fd={x:5,y:5}; this.tk=0; this.req=5+this.st; this.eat=0;} upd(){var spd=Math.max(2,12-this.mod*2); if(Inp.u&&this.d.y==0)this.d={x:0,y:-1}; if(Inp.d&&this.d.y==0)this.d={x:0,y:1}; if(Inp.l&&this.d.x==0)this.d={x:-1,y:0}; if(Inp.r&&this.d.x==0)this.d={x:1,y:0}; if(++this.tk>spd){this.tk=0; var h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; if(h.x<0||h.x>W/20||h.y<0||h.y>H/20||this.sn.some(s=>s.x==h.x&&s.y==h.y))return this.hurt(100); this.sn.unshift(h); if(h.x==this.fd.x&&h.y==this.fd.y){this.sc+=10; this.eat++; if(window.Sys.has('mag'))this.sc+=5; this.fd={x:Math.floor(this.rnd(W/20)),y:Math.floor(this.rnd(H/20))};}else this.sn.pop(); if(this.eat>=this.req)this.win();}} drw(){this.sn.forEach(s=>{var px=s.x*20+10, py=s.y*20+10; Ctx.fillStyle='#63e6be'; Ctx.beginPath(); Ctx.arc(px,py,8,0,6.28); Ctx.fill();}); this.dc(this.fd.x*20+10,this.fd.y*20+10,8);}};
+GC[3] = class extends GBase { rst(){this.bx=W/2; this.by=H/2; this.vx=4*this.mod; this.vy=4*this.mod; this.py=H/2; this.ph=80; this.cnt=0;} upd(){if(Inp.u)this.py-=6; if(Inp.d)this.py+=6; this.bx+=this.vx; this.by+=this.vy; if(this.by<0||this.by>H)this.vy*=-1; if(this.bx>W)this.vx*=-1; if(this.bx<20&&Math.abs(this.by-this.py)<this.ph){this.vx*=-1; this.sc+=10; this.cnt++; if(this.cnt>=3+this.st)this.win();} if(this.bx<0)this.hurt(100);} drw(){Ctx.fillStyle='#fff'; Ctx.fillRect(10,this.py-40,10,80); this.dc(this.bx,this.by,6);}};
+GC[4] = class extends GBase { rst(){this.bx=W/2; this.by=H/2; this.vx=4; this.vy=-4; this.px=W/2; this.br=[]; for(var i=0;i<3+this.st;i++)for(var j=0;j<6;j++)this.br.push({x:j*(W/6)+5,y:i*25+30,w:W/6-10,h:20,v:1});} upd(){if(Inp.l)this.px-=6; if(Inp.r)this.px+=6; this.bx+=this.vx; this.by+=this.vy; if(this.bx<0||this.bx>W)this.vx*=-1; if(this.by<0)this.vy*=-1; if(this.by>H-30&&Math.abs(this.bx-this.px)<50)this.vy*=-1; if(this.by>H)this.hurt(100); var h=this.br.find(b=>b.v&&this.hit({x:this.bx,y:this.by,w:5,h:5},b)); if(h){h.v=0; this.vy*=-1; this.sc+=10; this.part(this.bx,this.by,'#fff');} if(!this.br.some(b=>b.v))this.win();} drw(){Ctx.fillStyle='#fff'; Ctx.fillRect(this.px-50,H-20,100,10); this.dc(this.bx,this.by,5); this.br.forEach(b=>{if(b.v)this.de(b.x,b.y,b.w,b.h,`hsl(${b.x},70%,60%)`)});}};
+GC[5] = class extends GBase { rst(){this.px=W/2; this.es=[]; this.fr=0;} upd(){if(Inp.l)this.px-=5; if(Inp.r)this.px+=5; if(this.fr++%(40-this.st*2)==0)this.es.push({x:this.rnd(W),y:-20}); this.es.forEach(e=>{e.y+=3*this.mod; if(this.hit({x:this.px,y:H-40,w:20,h:20},{x:e.x,y:e.y,w:20,h:20}))this.hurt(100);}); this.sc+=0.5; if(this.sc>300+this.st*100)this.win();} drw(){this.dp(this.px,H-40,20,20); this.es.forEach(e=>this.de(e.x,e.y,20,20,'#f00'));}};
+GC[6] = class extends GBase { rst(){this.px=W/2; this.bs=[]; this.es=[]; this.fr=0; this.kil=0;} upd(){if(Inp.l)this.px-=5; if(Inp.r)this.px+=5; if(Inp.a&&this.fr%15==0)this.bs.push({x:this.px+10,y:H-40}); if(this.fr++%40==0)this.es.push({x:this.rnd(W-30),y:-30}); this.bs.forEach(b=>b.y-=8); this.es.forEach(e=>e.y+=2*this.mod); this.es.forEach((e,i)=>{if(e.y>H)this.hurt(20); this.bs.forEach((b,j)=>{if(this.hit({x:b.x,y:b.y,w:5,h:10},e)){this.es.splice(i,1); this.bs.splice(j,1); this.sc+=10; this.kil++; this.part(e.x,e.y,'#f00');}});}); if(this.kil>=5+this.st)this.win();} drw(){this.dp(this.px,H-30,20,20); this.bs.forEach(b=>{Ctx.fillStyle='#ff0';Ctx.fillRect(b.x,b.y,4,10);}); this.es.forEach(e=>this.de(e.x,e.y,30,30,'#f0f'));}};
+GC[7] = class extends GBase { rst(){this.y=H/2; this.v=0; this.ps=[]; this.fr=0;} upd(){this.v+=0.5; this.y+=this.v; if(Inp.a)this.v=-6; if(this.fr++%90==0)this.ps.push({x:W,y:100+this.rnd(H/2)}); this.ps.forEach(p=>{p.x-=3; if(this.hit({x:50,y:this.y,w:20,h:20},{x:p.x,y:0,w:40,h:p.y})||this.hit({x:50,y:this.y,w:20,h:20},{x:p.x,y:p.y+100,w:40,h:H}))this.hurt(100); if(p.x==47)this.sc+=10;}); if(this.y>H||this.y<0)this.hurt(100); if(this.sc>50+this.st*20)this.win(); } drw(){this.dp(50,this.y,20,20); this.ps.forEach(p=>{this.de(p.x,0,40,p.y,'#0f0'); this.de(p.x,p.y+100,40,H,'#0f0');});}};
+GC[8] = class extends GBase { rst(){this.px=W/2; this.py=H-50; this.vy=0; this.pls=[{x:W/2-30,y:H-20}]; this.cam=0;} upd(){if(Inp.l)this.px-=5; if(Inp.r)this.px+=5; this.vy+=0.5; this.py+=this.vy; if(this.py<H/2){this.py=H/2; this.cam-=this.vy; this.sc++;} if(this.py>H)this.hurt(100); if(this.cam>80){this.cam=0; this.pls.push({x:this.rnd(W-60),y:-20});} this.pls.forEach(p=>{p.y+=this.cam>0?5:0; if(this.vy>0&&this.hit({x:this.px,y:this.py+20,w:20,h:5},{x:p.x,y:p.y,w:60,h:10}))this.vy=-10;}); if(this.sc>200)this.win();} drw(){this.dp(this.px,this.py,20,20); this.pls.forEach(p=>this.de(p.x,p.y,60,10,'#fff'));}};
+GC[9] = class extends GBase { rst(){this.x=W/2; this.os=[]; this.fr=0;} upd(){if(Inp.l)this.x-=6; if(Inp.r)this.x+=6; if(this.fr++%25==0)this.os.push({x:this.rnd(W),y:0,bad:Math.random()<0.3}); this.os.forEach((o,i)=>{o.y+=4*this.mod; if(this.hit({x:this.x,y:H-40,w:40,h:20},{x:o.x,y:o.y,w:20,h:20})){if(o.bad)this.hurt(20);else{this.sc+=10;this.part(this.x,H-40,'#ff0');} this.os.splice(i,1);}}); if(this.sc>200)this.win();} drw(){this.dp(this.x,H-40,40,20); this.os.forEach(o=>this.de(o.x,o.y,15,15,o.bad?'#f00':'#ff0'));}};
+GC[10] = class extends GBase { rst(){var n=4; this.cs=[]; for(var i=0;i<n;i++)this.cs.push(i,i); this.cs.sort(()=>Math.random()-0.5); this.gd=this.cs.map(v=>({v,f:0,d:0})); this.sel=[]; this.cur=0;} upd(){if(Inp.r&&!this.lr)this.cur=(this.cur+1)%this.gd.length; if(Inp.a&&!this.la){var c=this.gd[this.cur]; if(!c.f&&!c.d){c.f=1; this.sel.push(this.cur); if(this.sel.length==2){if(this.gd[this.sel[0]].v==this.gd[this.sel[1]].v){this.gd[this.sel[0]].d=1;this.gd[this.sel[1]].d=1;this.sc+=10;}else{var a=this.sel[0],b=this.sel[1];setTimeout(()=>{this.gd[a].f=0;this.gd[b].f=0},500);}this.sel=[];}}} this.lr=Inp.r; this.la=Inp.a; if(this.gd.every(c=>c.d))this.win();} drw(){var w=40,h=60; this.gd.forEach((c,i)=>{var x=50+(i%4)*50, y=100+Math.floor(i/4)*70; if(i==this.cur)Ctx.strokeRect(x-2,y-2,w+4,h+4); Ctx.fillStyle=c.f||c.d?'#fff':'#444'; Ctx.fillRect(x,y,w,h); if(c.f||c.d){Ctx.fillStyle='#000';Ctx.fillText(c.v,x+15,y+35);}});}};
+// Math Fix
+GC[11] = class extends GBase { 
+    rst(){this.q=""; this.ans=0; this.ops=[]; this.sel=0; this.cnt=0; this.gen();} 
+    gen(){var a=Math.floor(this.rnd(10)),b=Math.floor(this.rnd(10)); this.q=`${a}+${b}=?`; this.ans=a+b; this.ops=[this.ans,this.ans+1,this.ans-1].sort(()=>Math.random()-0.5);} 
+    upd(){if(Inp.l&&!this.lk)this.sel=(this.sel+2)%3; if(Inp.r&&!this.lk)this.sel=(this.sel+1)%3; if(Inp.a&&!this.lk){if(this.ops[this.sel]==this.ans){this.sc+=20;this.cnt++;if(this.cnt>=3)this.win();else this.gen();}else this.hurt(20);} this.lk=Inp.l||Inp.r||Inp.a;} 
+    drw(){
+        Ctx.fillStyle='#fff'; Ctx.font='40px Arial'; Ctx.textAlign='center'; Ctx.fillText(this.q,W/2,100); 
+        this.ops.forEach((o,i)=>{
+            Ctx.fillStyle=i==this.sel?'#0f0':'#555'; 
+            Ctx.font='30px Arial'; Ctx.fillText(o,W/2,200+i*60);
+            if(i==this.sel) { Ctx.fillText("◄", W/2+50, 200+i*60); }
+        });
     }
 };
+GC[12] = class extends GBase { rst(){this.req=30*this.mod; this.tm=300;} upd(){this.tm--; if(Inp.a&&!this.la)this.sc++; this.la=Inp.a; if(this.sc>=this.req)this.win(); if(this.tm<=0)this.hurt(100);} drw(){Ctx.fillStyle='#fff'; Ctx.fillText(this.sc+"/"+Math.floor(this.req),W/2,100); Ctx.fillRect(50,200,(this.tm/300)*200,20);}};
+GC[13] = class extends GBase { rst(){this.ns=[]; this.fr=0;} upd(){if(this.fr++%40==0)this.ns.push({x:Math.random()>0.5?100:200,y:0}); this.ns.forEach((n,i)=>{n.y+=5; if(n.y>H-50&&n.y<H&&((n.x==100&&Inp.l)||(n.x==200&&Inp.r))){this.sc+=10; this.ns.splice(i,1);} if(n.y>H){this.hurt(10);this.ns.splice(i,1);}}); if(this.sc>200)this.win();} drw(){Ctx.fillStyle='#fff'; Ctx.fillRect(100,H-50,50,10); Ctx.fillRect(200,H-50,50,10); this.ns.forEach(n=>Ctx.fillRect(n.x,n.y,50,10));}};
+GC[14] = class extends GBase { rst(){this.p={x:W/2,y:H/2,a:0}; this.bs=[]; this.es=[];} upd(){if(Inp.u){this.p.x+=Math.cos(this.p.a)*2;this.p.y+=Math.sin(this.p.a)*2;} if(Inp.l)this.p.a-=0.1; if(Inp.r)this.p.a+=0.1; if(Inp.a&&!this.la){this.bs.push({x:this.p.x,y:this.p.y,dx:Math.cos(this.p.a)*5,dy:Math.sin(this.p.a)*5});} this.la=Inp.a; if(this.t%100==0)this.es.push({x:this.rnd(W),y:this.rnd(H)}); this.bs.forEach(b=>{b.x+=b.dx;b.y+=b.dy}); this.es.forEach((e,i)=>{if(Math.hypot(e.x-this.p.x,e.y-this.p.y)<20)this.hurt(5); this.bs.forEach((b,j)=>{if(Math.hypot(e.x-b.x,e.y-b.y)<20){this.es.splice(i,1);this.bs.splice(j,1);this.sc+=10;}});}); if(this.sc>=50)this.win();} drw(){this.dp(this.p.x,this.p.y,20,20); this.es.forEach(e=>this.de(e.x,e.y,20,20,'#f00')); this.bs.forEach(b=>this.de(b.x,b.y,4,4,'#fff'));}};
+GC[15] = class extends GBase { rst(){this.gid=15; this.y=H-20; this.x=W/2; this.cs=[];} upd(){if(Inp.u&&!this.lu)this.y-=30; if(Inp.d&&!this.ld)this.y+=30; if(Inp.l&&!this.ll)this.x-=20; if(Inp.r&&!this.lr)this.x+=20; this.lu=Inp.u;this.ld=Inp.d;this.ll=Inp.l;this.lr=Inp.r; if(this.t++%30==0)this.cs.push({x:-30,y:H-50-this.rnd(H-100),v:2+this.rnd(3)}); this.cs.forEach(c=>{c.x+=c.v; if(this.hit({x:this.x,y:this.y,w:20,h:20},{x:c.x,y:c.y,w:30,h:20}))this.hurt(100);}); if(this.y<20)this.win();} drw(){this.dp(this.x,this.y,20,20); this.cs.forEach(c=>this.de(c.x,c.y,30,20,'#f00'));}};
 
-Render.resize();
+// VARIANT MAPPING
+var vMap = {16:6, 17:9, 18:1, 19:9, 20:10, 21:12, 22:6, 23:10, 24:7, 25:8, 26:10, 27:10, 28:10, 29:10, 30:5, 31:14, 32:6, 33:9, 34:3, 35:1, 36:15, 37:8, 38:10, 39:2, 40:6};
+for(var k in vMap) { 
+    if(!GC[k]) {
+        (function(key){
+            var base = GC[vMap[key]];
+            GC[key] = class extends base { init(){super.init(); this.mod = (this.blv*0.6)+(this.st*0.2); } };
+        })(k);
+    }
+}
+
+// FALLBACK
+GC[99] = class extends GBase { 
+    rst(){this.gid=99; this.p={x:W/2,y:H/2}; this.t={x:this.rnd(W),y:this.rnd(H)};} 
+    upd(){if(Inp.l)this.p.x-=5; if(Inp.r)this.p.x+=5; if(Inp.u)this.p.y-=5; if(Inp.d)this.p.y+=5; if(this.hit(this.p,{x:this.t.x,y:this.t.y,w:20,h:20})){this.sc++; this.t={x:this.rnd(W),y:this.rnd(H)}; this.part(this.p.x,this.p.y,'#fff');} if(this.sc>5)this.win();} 
+    drw(){this.dp(this.p.x,this.p.y,20,20); this.dc(this.t.x+10,this.t.y+10,10);} 
+};
+
+// Fill remaining
+for(var i=1; i<=40; i++) { if(!GC[i]) GC[i] = GC[99]; }
+
+// AI
+var AI = {
+    ask: function() {
+        var t = document.getElementById('chat-in').value; if(!t) return;
+        document.getElementById('chat-in').value='';
+        var h = document.getElementById('chat-hist');
+        h.innerHTML += `<div class="msg m-usr">${t}</div>`;
+        setTimeout(function(){
+            var a = "這是一個很棒的遊戲！試試看挑戰困難模式？";
+            if(t.includes('help') || t.includes('救') || t.includes('怎麼')) a = "如果不小心死掉了，可以去商店買復活十字架喔！";
+            h.innerHTML += `<div class="msg m-ai">${a}</div>`;
+            h.scrollTop = h.scrollHeight;
+        }, 500);
+    }
+};
 </script>
 </body>
 </html>
