@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Roblox V66 - Fixed & Enhanced</title>
+    <title>Roblox V67 - Ultimate Fix</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
         
@@ -108,8 +108,8 @@
 
     <div id="l-login" class="layer active">
         <div class="box">
-            <h1 style="color:var(--primary); margin:0; text-shadow: 0 0 15px var(--primary);">ROBLOX V66</h1>
-            <p style="color:var(--text-sub); margin-bottom:30px;">修復版 + 主題切換</p>
+            <h1 style="color:var(--primary); margin:0; text-shadow: 0 0 15px var(--primary);">ROBLOX V67</h1>
+            <p style="color:var(--text-sub); margin-bottom:30px;">完整修復版 (貪食蛇中央出生)</p>
             <input type="text" id="uid" placeholder="輸入玩家 ID" maxlength="12">
             <button class="primary" onclick="window.Sys.login()" style="width:100%; font-size:1.2rem; margin-top:20px;">開始遊戲</button>
         </div>
@@ -153,7 +153,7 @@
             
             <div id="p-ai">
                 <div class="chat-hist" id="chat-hist">
-                    <div class="msg m-ai">你好！我是 AI 助手。所有遊戲已修復，現在可以在背包切換主題了！</div>
+                    <div class="msg m-ai">你好！我是 AI 助手。遊戲系統已全面更新！</div>
                 </div>
                 <div style="display:flex; gap:10px; padding:10px; background:#25262b; border-radius:12px; margin-top:10px;">
                     <input type="text" id="chat-in" placeholder="輸入問題..." style="margin:0; text-align:left; background:transparent; border:none; box-shadow:none; flex:1;">
@@ -246,7 +246,7 @@ window.GamesList = [
 
 window.Storage = { get: k=>localStorage.getItem(k), set: (k,v)=>localStorage.setItem(k,v) };
 
-// --- 1. SYSTEM (FIXED THEME SWITCHING) ---
+// --- 1. SYSTEM (THEME & PROGRESS FIXES) ---
 window.Sys = {
     u: { id:'Guest', coins:1000, gems:10, lv:1, exp:0, bag:[], spd:0, theme:'def', progress:{} },
     items: [
@@ -268,14 +268,14 @@ window.Sys = {
     ],
     login: function() {
         var id = document.getElementById('uid').value.trim() || "Guest";
-        try { var sv = Storage.get('rbx_v66_'+id); if(sv) this.u = JSON.parse(sv); } catch(e) {}
+        try { var sv = Storage.get('rbx_v67_'+id); if(sv) this.u = JSON.parse(sv); } catch(e) {}
         this.u.id = id; 
         if(!this.u.bag) this.u.bag=[]; 
         if(!this.u.progress) this.u.progress={};
-        if(!this.u.theme) this.u.theme = 'def'; // Ensure theme key exists
+        if(!this.u.theme) this.u.theme = 'def'; 
         this.upd(); window.Layer.sw('l-menu'); this.applyTheme(); window.Menu.init(); 
     },
-    save: function() { Storage.set('rbx_v66_'+this.u.id, JSON.stringify(this.u)); this.upd(); },
+    save: function() { Storage.set('rbx_v67_'+this.u.id, JSON.stringify(this.u)); this.upd(); },
     upd: function() {
         document.getElementById('m-id').innerText = this.u.id;
         document.getElementById('m-coin').innerText = this.u.coins;
@@ -293,12 +293,12 @@ window.Sys = {
         if(this.u.coins < 200) return window.toast("金幣不足 ($200)", true);
         this.u.coins -= 200;
         var r=Math.random(), msg="", icon="";
-        if(r<0.35) { var c=100+Math.floor(Math.random()*300); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
+        if(r<0.35) { var c=100+Math.floor(Math.random()*200); this.u.coins+=c; msg=`+${c} 金幣`; icon="🪙"; }
         else if(r<0.55) { var g=10+Math.floor(Math.random()*30); this.u.gems+=g; msg=`+${g} 寶石`; icon="💎"; }
         else { 
             var it = this.items[Math.floor(Math.random()*this.items.length)];
             if(it.type!=='con' && this.has(it.id)) { this.u.coins+=500; msg="重複補償 $500"; icon="🪙"; }
-            else { this.u.bag.push(it.id); msg=it.t; icon=it.i; if(it.type==='skin') this.useBagItem(it.id); } // Auto equip if new
+            else { this.u.bag.push(it.id); msg=it.t; icon=it.i; if(it.type==='skin') this.useBagItem(it.id); } 
         }
         document.getElementById('gm-glass').innerText = icon;
         this.save(); window.Menu.init();
@@ -320,7 +320,6 @@ window.Sys = {
         } else window.toast("金幣不足！", true);
     },
     has: function(id){ return this.u.bag.includes(id); },
-    // Consumables used inside game only. Skins used in menu.
     use: function(id){ var i=this.u.bag.indexOf(id); if(i>-1){ this.u.bag.splice(i,1); this.save(); return true; } return false; },
     useBagItem: function(id) {
         var it = this.items.find(x=>x.id==id);
@@ -329,7 +328,7 @@ window.Sys = {
             this.u.theme = id;
             this.applyTheme();
             this.save();
-            window.Menu.init(); // Refresh UI tags
+            window.Menu.init(); 
             window.toast("已裝備主題: " + it.t);
         } else if(it.type === 'con') {
             window.toast("請在遊戲內自動使用", true);
@@ -371,7 +370,6 @@ window.Menu = {
         var b = document.getElementById('p-bag');
         if(b) {
             var bi = window.Sys.u.bag.map(id=>window.Sys.items.find(x=>x.id==id)).filter(x=>x);
-            // Allow equipping from bag
             b.innerHTML = bi.map(it=>{
                 var active = (it.type==='skin' && window.Sys.u.theme === it.id) ? `<div class="active-theme-tag">使用中</div>` : '';
                 return `<div class="card" onclick="window.Sys.useBagItem('${it.id}')"><div class="c-icon">${it.i}</div><div class="c-txt">${it.t}</div>${active}</div>`;
@@ -450,7 +448,6 @@ var GBase = class {
         this.mod=(this.blv*0.5)+(this.st*0.1); 
         this.rst(); 
         window.toast("第 "+this.st+" 關"); 
-        // Heal 30% on stage clear
         if(this.st > 1) this.hp = Math.min(this.hp + 30, window.Sys.has('maxhp')?150:100);
     }
     rst() {}
@@ -571,16 +568,43 @@ var GC = {};
 
 GC[1] = class extends GBase { 
     rst(){this.p={x:20,y:20,w:20,h:20}; this.g={x:W-40,y:H-40,w:30,h:30}; this.obs=[]; 
-    // Fix infinite loop if space is tight
+    // Fix infinite loop
     var attempts=0; 
     for(var i=0;i<5+this.st*2;i++){var o; do{o={x:this.rnd(W),y:this.rnd(H),w:30+this.rnd(50),h:30+this.rnd(50)}; attempts++;}while((Math.hypot(o.x-this.p.x,o.y-this.p.y)<150||Math.hypot(o.x-this.g.x,o.y-this.g.y)<100) && attempts < 200); if(attempts<200) this.obs.push(o);}} 
     upd(){var s=3+(window.Sys.u.spd?1:0); if(Inp.u)this.p.y-=s; if(Inp.d)this.p.y+=s; if(Inp.l)this.p.x-=s; if(Inp.r)this.p.x+=s; if(this.obs.some(o=>this.hit(this.p,o)))this.hurt(2); if(this.hit(this.p,this.g))this.win();} drw(){this.dp(this.p.x,this.p.y,20,20); Ctx.fillStyle='#51cf66'; Ctx.shadowBlur=15; Ctx.shadowColor='#51cf66'; Ctx.fillRect(this.g.x,this.g.y,30,30); Ctx.shadowBlur=0; this.obs.forEach(o=>this.de(o.x,o.y,o.w,o.h,'#343a40'));}};
+
 GC[2] = class extends GBase { 
-    rst(){this.sz=20; this.sn=[{x:100,y:100}]; this.d={x:1,y:0}; this.fd={x:5,y:5}; this.tk=0; this.req=5+this.st; this.eat=0;} 
+    rst(){
+        this.sz=20; 
+        var gridW = Math.floor(W/20); var gridH = Math.floor(H/20);
+        var cx = Math.floor(gridW/2); var cy = Math.floor(gridH/2);
+        if(cx < 2) cx = 5; if(cy < 2) cy = 5;
+        this.sn=[{x:cx,y:cy}]; 
+        this.d={x:1,y:0};
+        this.fd={x:Math.floor(this.rnd(W/20)), y:Math.floor(this.rnd(H/20))}; 
+        this.tk=0; this.req=5+this.st; this.eat=0;
+    } 
     upd(){
-        // Fix speed crash: Ensure speed never goes below 1
         var spd=Math.max(1, 12 - Math.floor(this.mod*2)); 
-        if(Inp.u&&this.d.y==0)this.d={x:0,y:-1}; if(Inp.d&&this.d.y==0)this.d={x:0,y:1}; if(Inp.l&&this.d.x==0)this.d={x:-1,y:0}; if(Inp.r&&this.d.x==0)this.d={x:1,y:0}; if(++this.tk>spd){this.tk=0; var h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; if(h.x<0||h.x>W/20||h.y<0||h.y>H/20||this.sn.some(s=>s.x==h.x&&s.y==h.y))return this.hurt(100); this.sn.unshift(h); if(h.x==this.fd.x&&h.y==this.fd.y){this.sc+=10; this.eat++; if(window.Sys.has('mag'))this.sc+=5; this.fd={x:Math.floor(this.rnd(W/20)),y:Math.floor(this.rnd(H/20))};}else this.sn.pop(); if(this.eat>=this.req)this.win();}} drw(){this.sn.forEach(s=>{var px=s.x*20+10, py=s.y*20+10; Ctx.fillStyle='#63e6be'; Ctx.beginPath(); Ctx.arc(px,py,8,0,6.28); Ctx.fill();}); this.dc(this.fd.x*20+10,this.fd.y*20+10,8);}};
+        if(Inp.u&&this.d.y==0)this.d={x:0,y:-1}; if(Inp.d&&this.d.y==0)this.d={x:0,y:1}; 
+        if(Inp.l&&this.d.x==0)this.d={x:-1,y:0}; if(Inp.r&&this.d.x==0)this.d={x:1,y:0}; 
+        if(++this.tk>spd){
+            this.tk=0; var h={x:this.sn[0].x+this.d.x, y:this.sn[0].y+this.d.y}; 
+            if(h.x<0||h.x>W/20||h.y<0||h.y>H/20||this.sn.some(s=>s.x==h.x&&s.y==h.y)) return this.hurt(100); 
+            this.sn.unshift(h); 
+            if(h.x==this.fd.x&&h.y==this.fd.y){
+                this.sc+=10; this.eat++; if(window.Sys.has('mag'))this.sc+=5; 
+                this.fd={x:Math.floor(this.rnd(W/20)),y:Math.floor(this.rnd(H/20))};
+            } else { this.sn.pop(); }
+            if(this.eat>=this.req)this.win();
+        }
+    } 
+    drw(){
+        this.sn.forEach(s=>{var px=s.x*20+10, py=s.y*20+10; Ctx.fillStyle='#63e6be'; Ctx.beginPath(); Ctx.arc(px,py,8,0,6.28); Ctx.fill();}); 
+        this.dc(this.fd.x*20+10,this.fd.y*20+10,8);
+    }
+};
+
 GC[3] = class extends GBase { rst(){this.bx=W/2; this.by=H/2; this.vx=4*this.mod; this.vy=4*this.mod; this.py=H/2; this.ph=80; this.cnt=0;} upd(){if(Inp.u)this.py-=6; if(Inp.d)this.py+=6; this.bx+=this.vx; this.by+=this.vy; if(this.by<0||this.by>H)this.vy*=-1; if(this.bx>W)this.vx*=-1; if(this.bx<20&&Math.abs(this.by-this.py)<this.ph){this.vx*=-1; this.sc+=10; this.cnt++; if(this.cnt>=3+this.st)this.win();} if(this.bx<0)this.hurt(100);} drw(){Ctx.fillStyle='#fff'; Ctx.fillRect(10,this.py-40,10,80); this.dc(this.bx,this.by,6);}};
 GC[4] = class extends GBase { rst(){this.bx=W/2; this.by=H/2; this.vx=4; this.vy=-4; this.px=W/2; this.br=[]; for(var i=0;i<3+this.st;i++)for(var j=0;j<6;j++)this.br.push({x:j*(W/6)+5,y:i*25+30,w:W/6-10,h:20,v:1});} upd(){if(Inp.l)this.px-=6; if(Inp.r)this.px+=6; this.bx+=this.vx; this.by+=this.vy; if(this.bx<0||this.bx>W)this.vx*=-1; if(this.by<0)this.vy*=-1; if(this.by>H-30&&Math.abs(this.bx-this.px)<50)this.vy*=-1; if(this.by>H)this.hurt(100); var h=this.br.find(b=>b.v&&this.hit({x:this.bx,y:this.by,w:5,h:5},b)); if(h){h.v=0; this.vy*=-1; this.sc+=10; this.part(this.bx,this.by,'#fff');} if(!this.br.some(b=>b.v))this.win();} drw(){Ctx.fillStyle='#fff'; Ctx.fillRect(this.px-50,H-20,100,10); this.dc(this.bx,this.by,5); this.br.forEach(b=>{if(b.v)this.de(b.x,b.y,b.w,b.h,`hsl(${b.x},70%,60%)`)});}};
 GC[5] = class extends GBase { rst(){this.px=W/2; this.es=[]; this.fr=0; this.sc=0;} upd(){if(Inp.l)this.px-=5; if(Inp.r)this.px+=5; if(this.fr++%(40-this.st*2)==0)this.es.push({x:this.rnd(W),y:-20}); this.es.forEach(e=>{e.y+=3*this.mod; if(this.hit({x:this.px,y:H-40,w:20,h:20},{x:e.x,y:e.y,w:20,h:20}))this.hurt(100);}); this.sc+=0.5; if(this.sc>300+this.st*100)this.win();} drw(){this.dp(this.px,H-40,20,20); this.es.forEach(e=>this.de(e.x,e.y,20,20,'#f00'));}};
@@ -631,26 +655,15 @@ GC[20] = class extends GBase { // Slots (New)
 GC[21] = class extends GBase { // Fishing (New)
     rst() { this.barY = H/2; this.fishY = H/2; this.force = 0; this.prog = 0; this.sc=0; }
     upd() {
-        // Fish moves randomly
         if(Math.random()<0.05) this.targetY = 50 + Math.random()*(H-100);
         this.fishY += (this.targetY - this.fishY) * 0.05;
-        
-        // Player controls bar with A (Force up)
         if(Inp.a) this.force += 0.5; else this.force -= 0.5;
         this.force = Math.max(-5, Math.min(5, this.force));
         this.barY -= this.force;
         this.barY = Math.max(0, Math.min(H-40, this.barY));
-
-        // Check overlap
-        if(Math.abs(this.barY - this.fishY) < 30) {
-            this.prog += 0.5;
-            Ctx.fillStyle = '#0f0';
-        } else {
-            this.prog -= 0.2;
-            Ctx.fillStyle = '#fff';
-        }
-        this.prog = Math.max(0, this.prog);
-        this.sc = this.prog;
+        if(Math.abs(this.barY - this.fishY) < 30) { this.prog += 0.5; Ctx.fillStyle = '#0f0'; } 
+        else { this.prog -= 0.2; Ctx.fillStyle = '#fff'; }
+        this.prog = Math.max(0, this.prog); this.sc = this.prog;
         if(this.prog >= 100) this.win();
     }
     drw() {
@@ -662,42 +675,16 @@ GC[21] = class extends GBase { // Fishing (New)
 };
 
 // --- VARIANT MAPPING ---
-// Map to best fit base classes. Fixed incorrect mappings.
 var vMap = {
-    16:6, // Base Defense -> Space
-    17:9, // Ninja Fruit -> Catch
-    18:1, // Minefield -> Maze
-    19:9, // Number Collection -> Catch
-    // 20 is custom
-    // 21 is custom
-    22:6, // Balloon -> Space
-    23:13, // Whack a mole -> Rhythm (Wait for note/mole) - Better fit than Memory
-    24:7, // Moon -> Flappy
-    25:8, // Stack -> Jump
-    26:10, // Jewel -> Memory
-    27:11, // Sudoku -> Math (Calculations)
-    28:11, // Typing -> Math (Input)
-    29:10, // Color -> Memory
-    30:5, // Orbit -> Dodge
-    31:14, // Sniper -> Tank
-    32:6, // Alien -> Space
-    33:9, // Water -> Catch
-    34:3, // Squash -> Pong
-    35:1, // 3D Maze -> Maze
-    36:15, // Racer -> Frogger
-    37:8, // Climb -> Jump
-    38:10, // Simon -> Memory
-    39:2, // Speed Snake -> Snake
-    40:6  // Boss -> Space
+    16:6, 17:9, 18:1, 19:9, 22:6, 23:13, 24:7, 25:8, 26:10, 27:11, 28:11, 29:10, 30:5, 31:14, 32:6, 33:9, 34:3, 35:1, 36:15, 37:8, 38:10, 39:2, 40:6
 };
 
 for(var k in vMap) { 
     if(!GC[k]) {
         (function(key){
             var base = GC[vMap[key]];
-            // Correct inheritance
             GC[key] = class extends base { 
-                rst() { super.rst(); this.gid = parseInt(key); } // Ensure GID is correct for saves
+                rst() { super.rst(); this.gid = parseInt(key); } 
                 init(){ super.init(); this.mod = (this.blv*0.6)+(this.st*0.2); } 
             };
         })(k);
@@ -711,7 +698,6 @@ GC[99] = class extends GBase {
     drw(){this.dp(this.p.x,this.p.y,20,20); this.dc(this.t.x+10,this.t.y+10,10);} 
 };
 
-// Fill remaining
 for(var i=1; i<=40; i++) { if(!GC[i]) GC[i] = GC[99]; }
 
 // AI
