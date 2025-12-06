@@ -1688,5 +1688,69 @@ var AI = {
     console.log("射擊遊戲爽快版 (Super Shooter) 已加載 - 子彈增強/敵人變弱");
 })();
 </script>
+<script>
+// --- 無限闖關模式補丁 (Infinite Levels Patch) ---
+(function() {
+    console.log("無限闖關模式已啟動！");
+
+    // 1. 覆蓋原本的 GBase.win (勝利) 函式
+    // 原本是直接結束，現在改成進入下一關
+    GBase.prototype.win = function() {
+        // 暫停遊戲迴圈，避免重複觸發
+        window.Eng.stop(); 
+        
+        // 關卡數 +1
+        this.st++; 
+        
+        // 獎勵機制 (每過一關補血、加分)
+        this.sc += 100 * this.st; // 過關加分
+        window.Sys.u.coins += 50; // 過關賺金幣
+        
+        // 顯示過關訊息 (使用原本的 Modal 介面)
+        window.Layer.modal(
+            `<span style="color:#51cf66">LEVEL ${this.st-1} 完成！</span>`, 
+            `難度提升！準備進入第 <b style="color:#ffd43b; font-size:1.5rem">${this.st}</b> 關<br>
+             <span style="font-size:0.8rem; color:#aaa">敵人變快 / 數量變多</span>`, 
+            `<button class="primary" id="btn-next-lv" style="width:100%; padding:15px; font-size:1.2rem;">
+                繼續挑戰 (Level ${this.st})
+             </button>`
+        );
+
+        // 按下按鈕後的動作
+        document.getElementById('btn-next-lv').onclick = () => {
+            window.Layer.close(); // 關閉視窗
+            
+            // 2. 重新設定關卡狀態 (這會觸發 rst() 重置敵人，但保留 level)
+            // 根據關卡數調整難度係數 (mod)
+            // this.blv 是基礎難度, this.st 是當前關卡
+            this.mod = (this.blv * 0.5) + (this.st * 0.25); 
+            
+            // 呼叫遊戲重置 (Reset)
+            this.rst(); 
+            
+            // 額外難度調整 (針對不同遊戲類型微調)
+            // 如果是射擊類，可以增加敵人血量
+            if(this.enems) {
+                // 讓下一波敵人更強
+                this.wave_hp_bonus = (this.st - 1) * 2; 
+            }
+            // 稍微補血 (獎勵)
+            this.hp = Math.min(this.hp + 30, window.Sys.has('maxhp') ? 150 : 100);
+            
+            // 更新介面顯示
+            document.getElementById('g-st').innerText = this.st;
+            window.toast(`第 ${this.st} 關 開始！`);
+            
+            // 3. 繼續遊戲迴圈
+            window.Eng.loop();
+        };
+    };
+
+    // 2. 針對特定遊戲的「下一關」邏輯微調 (可選)
+    // 讓某些遊戲的 "sc" (分數/進度) 在 rst() 時歸零，這樣才能重新跑進度條
+    // 原本的 rst() 大多已經有 this.sc = 0，所以大部分遊戲直接適用！
+
+})();
+</script>
 </body>
 </html>
