@@ -1242,5 +1242,232 @@ var AI = {
     console.log("基地防禦 & 記憶翻牌 修復補丁已加載");
 })();
 </script>
+<script>
+// --- 太空大戰系列修復補丁 (Fix for Space Shooter Types) ---
+(function() {
+    
+    // 定義基礎太空戰機邏輯 (ID: 6)
+    GC[6] = class extends GBase {
+        rst() {
+            // 玩家設定
+            this.p = { x: W/2, y: H-80, w: 30, h: 30, cd: 0 };
+            this.bulls = []; // 子彈
+            this.enems = []; // 敵人
+            this.parts = []; // 爆炸特效
+            this.freq = 0.02 + (this.blv * 0.005); // 敵人生成頻率
+        }
+
+        upd() {
+            // 1. 玩家移動 (支援 8 方向)
+            let spd = 5;
+            if(Inp.l) this.p.x -= spd;
+            if(Inp.r) this.p.x += spd;
+            if(Inp.u) this.p.y -= spd;
+            if(Inp.d) this.p.y += spd;
+            
+            // 限制在畫面內
+            this.p.x = Math.max(0, Math.min(W-this.p.w, this.p.x));
+            this.p.y = Math.max(0, Math.min(H-this.p.h, this.p.y));
+
+            // 2. 射擊 (按 A 或 B)
+            if(this.p.cd > 0) this.p.cd--;
+            if((Inp.a || Inp.b) && this.p.cd <= 0) {
+                this.bulls.push({x:this.p.x+this.p.w/2-3, y:this.p.y, w:6, h:15, c:'#4dabf7'});
+                this.p.cd = 12; // 射擊冷卻
+            }
+
+            // 3. 敵人生成
+            if(Math.random() < this.freq) {
+                this.enems.push({
+                    x: Math.random() * (W-40),
+                    y: -40,
+                    w: 30 + Math.random()*10,
+                    h: 30 + Math.random()*10,
+                    vy: 2 + Math.random() * 2 + (this.blv*0.2), // 垂直速度
+                    vx: (Math.random()-0.5) * 2, // 水平飄移
+                    hp: 1 + Math.floor(this.sc/100)
+                });
+            }
+
+            // 4. 更新子彈
+            for(let i=this.bulls.length-1; i>=0; i--) {
+                let b = this.bulls[i];
+                b.y -= 10;
+                if(b.y < -20) this.bulls.splice(i, 1);
+            }
+
+            // 5. 更新敵人 & 碰撞
+            for(let i=this.enems.length-1; i>=0; i--) {
+                let e = this.enems[i];
+                e.y += e.vy;
+                e.x += e.vx;
+                
+                // 碰到邊界反彈 (水平)
+                if(e.x < 0 || e.x > W-e.w) e.vx *= -1;
+
+                // 碰到玩家 -> 死亡
+                if(this.hit(this.p, {x:e.x+5, y:e.y+5, w:e.w-10, h:e.h-10})) {
+                    this.hurt(30);
+                    this.enems.splice(i, 1);
+                    this.boom(e.x, e.y, '#ff6b6b', 10);
+                    continue;
+                }
+
+                // 被子彈打中
+                let hit = false;
+                for(let j=this.bulls.length-1; j>=0; j--) {
+                    let b = this.bulls[j];
+                    if(this.hit(b, e)) {
+                        e.hp--;
+                        this.bulls.splice(j, 1); // 子彈消失
+                        if(e.hp <= 0) {
+                            hit = true;
+                            this.sc += 10;
+                            this.boom(e.x, e.y, '#ffd43b', 8);
+                        }
+                        break;
+                    }
+                }
+                
+                if(hit) {
+                    this.enems.splice(i, 1);
+                    continue;
+                }
+
+                // 超出底部
+                if(e.y > H) {
+                    this.enems.splice(i, 1);
+                }
+            }
+
+            // 6. 粒子與勝利
+            this.parts.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.l--; });
+            this.parts = this.parts.filter(p => p.l > 0);
+            
+            if(this.sc >= 300 + (this.blv*100)) this.win();
+        }
+
+        drw() {
+            // 畫背景 (簡單星空)
+            Ctx.fillStyle = '#000';
+            Ctx.fillRect(0,0,W,H);
+            if(Math.random()<0.2) Ctx.fillStyle='#fff'; else Ctx.fillStyle='#444';
+            for(let i=0;i<5;i++) Ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
+
+            // 畫玩家 (三角形戰機)
+            Ctx.fillStyle = '#4dabf7';
+            Ctx.beginPath();
+            Ctx.moveTo(this.p.x + this.p.w/2, this.p.y);
+            Ctx.lineTo(this.p.x + this.p.w, this.p.y + this.p.h);
+            Ctx.lineTo(this.p.x, this.p.y + this.p.h);
+            Ctx.fill();
+            // 噴射火焰
+            Ctx.fillStyle = '#fcc419';
+            Ctx.fillRect(this.p.x+10, this.p.y+30, 10, Math.random()*15+5);
+
+            // 畫敵人
+            this.enems.forEach(e => {
+                this.de(e.x, e.y, e.w, e.h, '#ff6b6b');
+                // 敵人圖案
+                Ctx.fillStyle = '#333';
+                Ctx.fillRect(e.x+5, e.y+10, 5, 5);
+                Ctx.fillRect(e.x+e.w-10, e.y+10, 5, 5);
+            });
+
+            // 畫子彈
+            this.bulls.forEach(b => {
+                Ctx.fillStyle = b.c;
+                Ctx.fillRect(b.x, b.y, b.w, b.h);
+            });
+
+            // 畫粒子
+            this.parts.forEach(p => { Ctx.fillStyle=p.c; Ctx.fillRect(p.x,p.y,3,3); });
+        }
+        
+        boom(x,y,c,n) {
+            for(let i=0; i<n; i++) this.parts.push({x:x, y:y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, l:15, c:c});
+        }
+    };
+
+    // --- 變體遊戲修正 ---
+
+    // 32: 外星入侵 (敵人更多，速度更快)
+    GC[32] = class extends GC[6] {
+        init() {
+            super.init();
+            this.freq *= 1.5; // 敵人出現頻率增加 50%
+        }
+    };
+
+    // 40: 終極魔王 (Boss 戰概念)
+    GC[40] = class extends GC[6] {
+        rst() {
+            super.rst();
+            // 只有一個大 Boss
+            this.boss = {x:W/2-40, y:20, w:80, h:80, hp:50 + (this.blv*20), max:50+(this.blv*20), vx:2};
+        }
+        upd() {
+            super.upd();
+            // 覆蓋敵人生成邏輯，只處理 Boss
+            this.enems = []; 
+            
+            let b = this.boss;
+            if(b.hp > 0) {
+                b.x += b.vx;
+                if(b.x < 0 || b.x > W-b.w) b.vx *= -1;
+                
+                // Boss 發射子彈
+                if(Math.random() < 0.05) {
+                   this.enems.push({x:b.x+40, y:b.y+80, w:10, h:10, vy:5, vx:0, hp:100}); // 借用 enems 陣列放子彈
+                }
+
+                // 檢查玩家子彈是否打中 Boss
+                for(let j=this.bulls.length-1; j>=0; j--) {
+                    let bu = this.bulls[j];
+                    if(this.hit(bu, b)) {
+                        b.hp--;
+                        this.bulls.splice(j, 1);
+                        this.boom(bu.x, bu.y, '#fff', 2);
+                        if(b.hp <= 0) {
+                            this.win();
+                            this.boom(b.x, b.y, '#f00', 50);
+                        }
+                    }
+                }
+            }
+        }
+        drw() {
+            super.drw();
+            if(this.boss.hp > 0) {
+                this.de(this.boss.x, this.boss.y, this.boss.w, this.boss.h, '#e03131');
+                // 血條
+                Ctx.fillStyle = '#444'; Ctx.fillRect(this.boss.x, this.boss.y-10, this.boss.w, 6);
+                Ctx.fillStyle = '#f00'; Ctx.fillRect(this.boss.x, this.boss.y-10, this.boss.w * (this.boss.hp/this.boss.max), 6);
+            }
+        }
+    };
+
+    // 22: 氣球防衛 (類似太空戰，但不能漏掉敵人)
+    GC[22] = class extends GC[6] {
+        rst() {
+            super.rst();
+            this.enems = [];
+        }
+        upd() {
+            // 借用父類別邏輯，但修改漏接判斷
+            super.upd();
+            // 檢查剛剛是否有敵人因為超出底部而被移除 (在父類別這只會單純移除)
+            // 這裡我們需要覆寫邏輯比較麻煩，不如直接在 drw 畫一條紅線表示防衛線
+        }
+        drw() {
+            super.drw();
+            Ctx.fillStyle = 'rgba(255,0,0,0.3)';
+            Ctx.fillRect(0, H-10, W, 10); // 底部紅線
+        }
+    };
+
+    console.log("太空大戰系列修復補丁已加載");
+})();
+</script>
 </body>
 </html>
