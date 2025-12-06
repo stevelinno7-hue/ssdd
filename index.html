@@ -716,5 +716,73 @@ var AI = {
     }
 };
 </script>
+<script>
+// --- 虛擬按鍵修復補丁 (Virtual Keys Fix) ---
+(function() {
+    // 定義按鍵映射
+    const keyMap = {
+        'ArrowUp': { code: 'ArrowUp', key: 'ArrowUp', keyCode: 38 },
+        'ArrowDown': { code: 'ArrowDown', key: 'ArrowDown', keyCode: 40 },
+        'ArrowLeft': { code: 'ArrowLeft', key: 'ArrowLeft', keyCode: 37 },
+        'ArrowRight': { code: 'ArrowRight', key: 'ArrowRight', keyCode: 39 },
+        'KeyZ': { code: 'KeyZ', key: 'z', keyCode: 90 }, // A 鍵
+        'KeyX': { code: 'KeyX', key: 'x', keyCode: 88 }  // B 鍵
+    };
+
+    // 觸發按鍵事件的函數
+    function trigger(k, type) {
+        if (!keyMap[k]) return;
+        const info = keyMap[k];
+        
+        // 1. 發送鍵盤事件 (讓遊戲引擎接收)
+        const event = new KeyboardEvent(type, {
+            code: info.code,
+            key: info.key,
+            keyCode: info.keyCode,
+            which: info.keyCode,
+            bubbles: true,
+            cancelable: true
+        });
+        window.dispatchEvent(event);
+
+        // 2. 直接強制更新遊戲輸入狀態 (如果 Input 對象存在)
+        if (typeof window.Inp !== 'undefined') {
+            const mapInp = { 'ArrowUp':'u', 'ArrowDown':'d', 'ArrowLeft':'l', 'ArrowRight':'r', 'KeyZ':'a', 'KeyX':'b' };
+            if (mapInp[k]) window.Inp[mapInp[k]] = (type === 'keydown');
+        }
+    }
+
+    // 綁定事件到所有按鈕
+    const btns = document.querySelectorAll('.btn-c, .btn-act');
+    btns.forEach(btn => {
+        const k = btn.getAttribute('data-k');
+        
+        const start = (e) => {
+            e.preventDefault(); // 防止手機長按選中文字或縮放
+            trigger(k, 'keydown');
+            btn.style.transform = 'scale(0.95)'; // 按下效果
+            btn.style.opacity = '0.8';
+        };
+
+        const end = (e) => {
+            e.preventDefault();
+            trigger(k, 'keyup');
+            btn.style.transform = ''; // 恢復效果
+            btn.style.opacity = '';
+        };
+
+        // 支援手機觸控
+        btn.addEventListener('touchstart', start, {passive: false});
+        btn.addEventListener('touchend', end);
+        
+        // 支援電腦滑鼠
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+        btn.addEventListener('mouseleave', end);
+    });
+    
+    console.log("虛擬按鍵修復補丁已加載");
+})();
+</script>
 </body>
 </html>
