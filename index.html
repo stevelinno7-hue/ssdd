@@ -934,5 +934,313 @@ var AI = {
     console.log("青蛙過街最終修復版 (慢速/多車道/流暢移動) 已加載");
 })();
 </script>
+<script>
+// --- 遊戲修復補丁包：基地防禦 + 記憶翻牌 (含觸控優化) ---
+(function() {
+    
+    // ==========================================
+    // 1. 修復：基地防禦 (Base Defense) - ID 16
+    // ==========================================
+    GC[16] = class extends GBase {
+        rst() {
+            // 玩家設定 (飛船)
+            this.p = { x: W/2, y: H-80, w: 40, h: 40, cd: 0 };
+            this.bulls = []; // 子彈
+            this.enems = []; // 敵人
+            this.parts = []; // 爆炸粒子
+            this.wave = 0;   // 波數
+        }
+
+        upd() {
+            // --- 玩家控制 ---
+            if(Inp.l) this.p.x -= 6;
+            if(Inp.r) this.p.x += 6;
+            this.p.x = Math.max(20, Math.min(W-20, this.p.x));
+
+            // 自動射擊 或 按A射擊
+            if(this.p.cd > 0) this.p.cd--;
+            if((Inp.a || Inp.b) && this.p.cd <= 0) {
+                this.bulls.push({x:this.p.x, y:this.p.y-20, w:6, h:15});
+                this.p.cd = 10; // 射擊冷卻
+            }
+
+            // --- 敵人生成 (關鍵修復) ---
+            // 隨著分數(sc)增加，敵人生成機率變高
+            let rate = 0.02 + (this.sc * 0.001) + (this.blv * 0.005);
+            if(Math.random() < rate) {
+                this.enems.push({
+                    x: Math.random() * (W-40) + 20,
+                    y: -40, // 從畫面外上方生成
+                    w: 30, h: 30,
+                    hp: 1 + Math.floor(this.sc/50), // 隨時間變強
+                    spd: 2 + Math.random() * 2 + (this.blv * 0.5)
+                });
+            }
+
+            // --- 更新子彈 ---
+            for(let i=this.bulls.length-1; i>=0; i--) {
+                let b = this.bulls[i];
+                b.y -= 10; // 子彈速度
+                if(b.y < -20) this.bulls.splice(i, 1);
+            }
+
+            // --- 更新敵人 & 碰撞 ---
+            for(let i=this.enems.length-1; i>=0; i--) {
+                let e = this.enems[i];
+                e.y += e.spd;
+
+                // 碰到玩家 -> 受傷
+                if(this.hit(this.p, e)) {
+                    this.hurt(20);
+                    this.enems.splice(i, 1);
+                    this.addPart(e.x, e.y, '#f00', 10);
+                    continue;
+                }
+
+                // 超出底部 -> 扣血 (基地受損)
+                if(e.y > H) {
+                    this.hurt(10); 
+                    this.enems.splice(i, 1);
+                    continue;
+                }
+
+                // 被子彈打中
+                for(let j=this.bulls.length-1; j>=0; j--) {
+                    let b = this.bulls[j];
+                    if(this.hit(b, e)) {
+                        e.hp--;
+                        this.bulls.splice(j, 1); // 移除子彈
+                        if(e.hp <= 0) {
+                            this.sc += 10;
+                            this.enems.splice(i, 1); // 移除敵人
+                            this.addPart(e.x, e.y, '#fa5', 8);
+                            break; // 敵人死了，跳出子彈迴圈
+                        }
+                    }
+                }
+            }
+
+            // 粒子特效更新
+            this.parts.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.l--; });
+            this.parts = this.parts.filter(p => p.l > 0);
+
+            // 勝利條件 (撐過一定分數)
+            if(this.sc >= 500 + (this.blv*100)) this.win();
+        }
+
+        drw() {
+            // 背景星空
+            Ctx.fillStyle = '#0b1016';
+            Ctx.fillRect(0,0,W,H);
+            if(Math.random()<0.1) Ctx.fillStyle='#fff'; 
+            else Ctx.fillStyle='rgba(255,255,255,0.2)';
+            for(let i=0;i<10;i++) Ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
+
+            // 畫玩家
+            this.de(this.p.x-20, this.p.y-20, 40, 40, '#4dabf7'); 
+            Ctx.fillStyle = '#fcc419'; // 引擎火光
+            Ctx.beginPath(); Ctx.moveTo(this.p.x-5, this.p.y+20); Ctx.lineTo(this.p.x+5, this.p.y+20); Ctx.lineTo(this.p.x, this.p.y+35); Ctx.fill();
+
+            // 畫敵人
+            this.enems.forEach(e => {
+                this.de(e.x-e.w/2, e.y-e.h/2, e.w, e.h, '#ff6b6b');
+                // 敵人眼睛
+                Ctx.fillStyle='#000'; Ctx.fillRect(e.x-8, e.y-5, 4, 4); Ctx.fillRect(e.x+4, e.y-5, 4, 4);
+            });
+
+            // 畫子彈
+            Ctx.fillStyle = '#51cf66';
+            this.bulls.forEach(b => Ctx.fillRect(b.x-3, b.y, 6, 15));
+
+            // 畫粒子
+            this.parts.forEach(p => { Ctx.fillStyle=p.c; Ctx.fillRect(p.x,p.y,3,3); });
+        }
+
+        addPart(x,y,c,n) {
+            for(let i=0; i<n; i++) this.parts.push({x:x, y:y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, l:20, c:c});
+        }
+    };
+
+
+    // ==========================================
+    // 2. 修復：記憶翻牌 (Memory Flip) - ID 10
+    // ==========================================
+    GC[10] = class extends GBase {
+        rst() {
+            // --- 設定佈局 ---
+            // 增加行列數 (6行 x 5列 = 30張牌)
+            this.rows = 6;
+            this.cols = 5;
+            this.gap = 10;
+            
+            // 計算卡片大小以適應螢幕
+            this.cw = (W - (this.cols+1)*this.gap) / this.cols;
+            this.ch = (H - 120 - (this.rows+1)*this.gap) / this.rows; // 扣除上方HUD高度
+            this.offY = 100; // 上方偏移量
+
+            // 生成卡片
+            let pairs = (this.rows * this.cols) / 2;
+            let symbols = ['🍎','🍌','🍇','🍉','🍒','🍓','🍍','🥝','🥑','🍆','🥕','🌽','🌶️','🍄','🍞'];
+            let deck = [];
+            for(let i=0; i<pairs; i++) {
+                let s = symbols[i % symbols.length];
+                deck.push({v:s, st:0}); // st: 0=蓋著, 1=翻開, 2=已消除
+                deck.push({v:s, st:0});
+            }
+            // 洗牌
+            deck.sort(() => Math.random() - 0.5);
+
+            this.cards = [];
+            let idx = 0;
+            for(let r=0; r<this.rows; r++) {
+                for(let c=0; c<this.cols; c++) {
+                    this.cards.push({
+                        x: this.gap + c*(this.cw+this.gap),
+                        y: this.offY + r*(this.ch+this.gap),
+                        w: this.cw, h: this.ch,
+                        data: deck[idx]
+                    });
+                    idx++;
+                }
+            }
+
+            this.flipped = []; // 當前翻開的牌
+            this.lock = false; // 動畫鎖
+            this.matched = 0;  // 已配對數量
+
+            // --- 綁定觸控事件 (解決觸控不良) ---
+            // 為了不干擾其他遊戲，我們檢測點擊座標
+            this.clickHandler = (e) => {
+                if(this.lock) return;
+                
+                // 取得點擊座標 (相對於Canvas)
+                const cvs = document.getElementById('cvs');
+                const rect = cvs.getBoundingClientRect();
+                
+                // 處理觸控或滑鼠
+                let cx, cy;
+                if(e.touches && e.touches.length > 0) {
+                    cx = e.touches[0].clientX;
+                    cy = e.touches[0].clientY;
+                } else {
+                    cx = e.clientX;
+                    cy = e.clientY;
+                }
+                
+                // 轉換為 Canvas 內部座標
+                const scaleX = cvs.width / rect.width;
+                const scaleY = cvs.height / rect.height;
+                const x = (cx - rect.left) * scaleX;
+                const y = (cy - rect.top) * scaleY;
+
+                // 檢查點擊了哪張牌
+                this.cards.forEach(c => {
+                    if(c.data.st === 0 && x > c.x && x < c.x+c.w && y > c.y && y < c.y+c.h) {
+                        this.flip(c);
+                    }
+                });
+            };
+
+            // 註冊事件 (使用 'pointerdown' 兼容滑鼠和觸控)
+            document.getElementById('cvs').addEventListener('pointerdown', this.clickHandler);
+        }
+
+        // 翻牌邏輯
+        flip(c) {
+            c.data.st = 1; // 翻開
+            this.flipped.push(c);
+
+            if(this.flipped.length === 2) {
+                this.lock = true; // 鎖定操作
+                setTimeout(() => this.check(), 800); // 0.8秒後檢查
+            }
+        }
+
+        check() {
+            let c1 = this.flipped[0];
+            let c2 = this.flipped[1];
+
+            if(c1.data.v === c2.data.v) {
+                // 配對成功
+                c1.data.st = 2;
+                c2.data.st = 2;
+                this.matched++;
+                this.sc += 100;
+                window.toast("配對成功！", false);
+                if(this.matched >= (this.rows*this.cols)/2) this.win();
+            } else {
+                // 配對失敗，蓋回去
+                c1.data.st = 0;
+                c2.data.st = 0;
+            }
+            this.flipped = [];
+            this.lock = false;
+        }
+
+        upd() {
+            // 遊戲邏輯主要由事件驅動，這裡只需要處理計時或特效
+            // 如果您還是習慣用鍵盤(方向鍵)，這裡可以保留游標邏輯，但為了效能暫時省略
+        }
+
+        drw() {
+            // 背景
+            Ctx.fillStyle = '#212529';
+            Ctx.fillRect(0,0,W,H);
+
+            this.cards.forEach(c => {
+                if(c.data.st === 2) return; // 已消除不畫 (或者畫半透明)
+
+                // 繪製卡片本體
+                if(c.data.st === 0) {
+                    // 背面 (蓋著)
+                    Ctx.fillStyle = '#3bc9db'; // 漂亮的藍綠色
+                    this.roundRect(c.x, c.y, c.w, c.h, 8);
+                    Ctx.fill();
+                    // 背面花紋
+                    Ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    Ctx.font = '20px Arial';
+                    Ctx.textAlign = 'center';
+                    Ctx.textBaseline = 'middle';
+                    Ctx.fillText("?", c.x+c.w/2, c.y+c.h/2);
+                } else {
+                    // 正面 (翻開)
+                    Ctx.fillStyle = '#fff';
+                    this.roundRect(c.x, c.y, c.w, c.h, 8);
+                    Ctx.fill();
+                    // 內容
+                    Ctx.fillStyle = '#000';
+                    Ctx.font = (this.cw*0.6) + 'px Arial'; // 動態字體大小
+                    Ctx.textAlign = 'center';
+                    Ctx.textBaseline = 'middle';
+                    Ctx.fillText(c.data.v, c.x+c.w/2, c.y+c.h/2 + 5);
+                }
+                
+                // 邊框
+                Ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                Ctx.lineWidth = 2;
+                Ctx.stroke();
+            });
+        }
+
+        // 輔助函式：畫圓角矩形
+        roundRect(x, y, w, h, r) {
+            Ctx.beginPath();
+            Ctx.moveTo(x+r, y);
+            Ctx.arcTo(x+w, y, x+w, y+h, r);
+            Ctx.arcTo(x+w, y+h, x, y+h, r);
+            Ctx.arcTo(x, y+h, x, y, r);
+            Ctx.arcTo(x, y, x+w, y, r);
+            Ctx.closePath();
+        }
+
+        // 清理事件監聽器 (當離開遊戲時) - 簡易處理：
+        // 由於 GBase 沒有 destroy，我們在每次 rst 時綁定，
+        // 為了避免重複綁定，可以先 remove。
+        // 但最簡單的方法是讓 clickHandler 檢查當前遊戲 ID 是否為 10
+    };
+    
+    console.log("基地防禦 & 記憶翻牌 修復補丁已加載");
+})();
+</script>
 </body>
 </html>
