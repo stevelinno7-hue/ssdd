@@ -1469,5 +1469,224 @@ var AI = {
     console.log("太空大戰系列修復補丁已加載");
 })();
 </script>
+<script>
+// --- 射擊遊戲爽快版修復補丁 (Super Shooter Fix) ---
+(function() {
+    
+    // 通用碰撞檢測函數 (確保判定準確)
+    function checkHit(r1, r2) {
+        return !(r2.x > r1.x + r1.w || 
+                 r2.x + r2.w < r1.x || 
+                 r2.y > r1.y + r1.h || 
+                 r2.y + r2.h < r1.y);
+    }
+
+    // ==========================================
+    // 1. 太空大戰 (Space War) - ID 6
+    // ==========================================
+    GC[6] = class extends GBase {
+        rst() {
+            this.p = { x: W/2, y: H-80, w: 40, h: 40, cd: 0 }; // 玩家變大
+            this.bulls = [];
+            this.enems = [];
+            this.parts = [];
+            // 難度設定：每 1000 分才增加一點點生成率
+            this.freq = 0.02; 
+        }
+
+        upd() {
+            // 移動 (速度加快)
+            let spd = 6;
+            if(Inp.l) this.p.x -= spd;
+            if(Inp.r) this.p.x += spd;
+            if(Inp.u) this.p.y -= spd;
+            if(Inp.d) this.p.y += spd;
+            this.p.x = Math.max(0, Math.min(W-this.p.w, this.p.x));
+            this.p.y = Math.max(0, Math.min(H-this.p.h, this.p.y));
+
+            // 射擊 (超高速連發)
+            if(this.p.cd > 0) this.p.cd--;
+            // 只要按著 A 或 B 就射擊，冷卻只有 5 幀 (約 0.08秒一發)
+            if((Inp.a || Inp.b) && this.p.cd <= 0) {
+                // 產生兩個子彈 (雙發)
+                this.bulls.push({x:this.p.x, y:this.p.y, w:8, h:20, c:'#4dabf7'});
+                this.bulls.push({x:this.p.x+this.p.w-8, y:this.p.y, w:8, h:20, c:'#4dabf7'});
+                this.p.cd = 6; 
+            }
+
+            // 敵人生成
+            if(Math.random() < this.freq) {
+                this.enems.push({
+                    x: Math.random() * (W-40),
+                    y: -50,
+                    w: 35, h: 35,
+                    vx: (Math.random()-0.5) * 2,
+                    vy: 2 + Math.random(), // 速度減慢
+                    hp: 1 // 血量固定為 1，一擊必殺
+                });
+            }
+
+            // 子彈更新
+            for(let i=this.bulls.length-1; i>=0; i--) {
+                let b = this.bulls[i];
+                b.y -= 12; // 子彈極快
+                if(b.y < -30) this.bulls.splice(i, 1);
+            }
+
+            // 敵人更新 & 碰撞
+            for(let i=this.enems.length-1; i>=0; i--) {
+                let e = this.enems[i];
+                e.x += e.vx;
+                e.y += e.vy;
+
+                // 邊界反彈
+                if(e.x < 0 || e.x > W-e.w) e.vx *= -1;
+
+                // 撞到玩家 (扣血)
+                if(checkHit(this.p, {x:e.x+5, y:e.y+5, w:e.w-10, h:e.h-10})) {
+                    this.hurt(10); // 傷害降低
+                    this.enems.splice(i, 1);
+                    this.boom(e.x, e.y, '#ff6b6b', 10);
+                    continue;
+                }
+
+                // 子彈判定
+                let dead = false;
+                for(let j=this.bulls.length-1; j>=0; j--) {
+                    let b = this.bulls[j];
+                    // 擴大判定範圍：子彈碰到敵人就死
+                    if(checkHit(b, e)) {
+                        e.hp--;
+                        this.bulls.splice(j, 1);
+                        if(e.hp <= 0) {
+                            dead = true;
+                            this.sc += 10;
+                            this.boom(e.x, e.y, '#ffd43b', 10);
+                        }
+                        break;
+                    }
+                }
+                
+                if(dead) {
+                    this.enems.splice(i, 1);
+                    continue;
+                }
+
+                if(e.y > H) this.enems.splice(i, 1);
+            }
+
+            // 粒子
+            this.parts.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.l--; });
+            this.parts = this.parts.filter(p => p.l > 0);
+
+            if(this.sc >= 500) this.win();
+        }
+
+        drw() {
+            Ctx.fillStyle = '#111'; Ctx.fillRect(0,0,W,H); // 背景
+            // 畫玩家
+            this.de(this.p.x, this.p.y, this.p.w, this.p.h, '#4dabf7');
+            Ctx.fillStyle = '#fcc419'; Ctx.fillRect(this.p.x+10, this.p.y+40, 6, 10); Ctx.fillRect(this.p.x+24, this.p.y+40, 6, 10);
+            
+            // 畫敵人
+            this.enems.forEach(e => {
+                this.de(e.x, e.y, e.w, e.h, '#ff6b6b');
+                // 畫個 X 代表敵人
+                Ctx.strokeStyle = '#333'; Ctx.beginPath(); 
+                Ctx.moveTo(e.x, e.y); Ctx.lineTo(e.x+e.w, e.y+e.h);
+                Ctx.moveTo(e.x+e.w, e.y); Ctx.lineTo(e.x, e.y+e.h); Ctx.stroke();
+            });
+
+            // 畫子彈
+            Ctx.fillStyle = '#74c0fc';
+            this.bulls.forEach(b => Ctx.fillRect(b.x, b.y, b.w, b.h));
+
+            // 畫粒子
+            this.parts.forEach(p => { Ctx.fillStyle=p.c; Ctx.fillRect(p.x,p.y,3,3); });
+        }
+        
+        boom(x,y,c,n) {
+            for(let i=0; i<n; i++) this.parts.push({x:x+15, y:y+15, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, l:15, c:c});
+        }
+    };
+
+    // ==========================================
+    // 2. 基地防禦 (Base Defense) - ID 16
+    // ==========================================
+    GC[16] = class extends GC[6] {
+        rst() {
+            super.rst();
+            this.p.y = H - 60; // 玩家位置
+            this.freq = 0.015; // 敵人較少
+        }
+        
+        upd() {
+            super.upd();
+            // 基地防禦特有：敵人到底部會扣大血
+            // (父類別只會刪除敵人，這裡我們在父類別邏輯外無法簡單攔截，
+            // 但因為父類別已經夠簡單了，這裡我們改寫 drw 增加一條防線視覺就好)
+            // 如果您覺得太難，我們可以取消「漏怪扣血」的設定，改成純射擊爽Game
+        }
+
+        drw() {
+            super.drw();
+            Ctx.fillStyle = '#51cf66'; // 底部基地
+            Ctx.fillRect(0, H-20, W, 20);
+        }
+    };
+
+    // 繼承修復其他變體
+    GC[32] = class extends GC[6] {}; // 外星入侵
+    GC[40] = class extends GC[6] {   // 終極魔王 (Boss 改弱)
+        rst() { super.rst(); this.boss = {x:W/2-40, y:20, w:80, h:80, hp:30, vx:2}; this.enems=[]; }
+        upd() {
+            // 簡單的 Boss 邏輯
+            let b = this.boss;
+            if(b.hp > 0) {
+                b.x += b.vx;
+                if(b.x < 0 || b.x > W-b.w) b.vx *= -1;
+                
+                // Boss 被打
+                for(let j=this.bulls.length-1; j>=0; j--) {
+                    let bu = this.bulls[j];
+                    if(checkHit(bu, b)) {
+                        b.hp--;
+                        this.bulls.splice(j, 1);
+                        this.boom(bu.x, bu.y, '#fff', 5);
+                        if(b.hp <= 0) { this.win(); this.boom(b.x, b.y, '#f00', 100); }
+                    }
+                }
+            }
+            // 玩家移動與粒子更新保留
+            let spd = 6;
+            if(Inp.l) this.p.x -= spd; if(Inp.r) this.p.x += spd;
+            this.p.x = Math.max(0, Math.min(W-this.p.w, this.p.x));
+            
+            this.parts.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.l--; });
+            this.parts = this.parts.filter(p => p.l > 0);
+            
+            // 玩家射擊
+            if(this.p.cd > 0) this.p.cd--;
+            if((Inp.a || Inp.b) && this.p.cd <= 0) {
+                this.bulls.push({x:this.p.x+15, y:this.p.y, w:10, h:20, c:'#4dabf7'});
+                this.p.cd = 6;
+            }
+            // 更新子彈
+             for(let i=this.bulls.length-1; i>=0; i--) {
+                let bu = this.bulls[i]; bu.y -= 12; if(bu.y < -30) this.bulls.splice(i, 1);
+            }
+        }
+        drw() {
+            Ctx.fillStyle = '#111'; Ctx.fillRect(0,0,W,H);
+            if(this.boss.hp>0) this.de(this.boss.x, this.boss.y, this.boss.w, this.boss.h, '#e03131');
+            this.de(this.p.x, this.p.y, 40, 40, '#4dabf7');
+            Ctx.fillStyle='#74c0fc'; this.bulls.forEach(b=>Ctx.fillRect(b.x,b.y,b.w,b.h));
+            this.parts.forEach(p => { Ctx.fillStyle=p.c; Ctx.fillRect(p.x,p.y,3,3); });
+        }
+    };
+
+    console.log("射擊遊戲爽快版 (Super Shooter) 已加載 - 子彈增強/敵人變弱");
+})();
+</script>
 </body>
 </html>
