@@ -1752,5 +1752,88 @@ var AI = {
 
 })();
 </script>
+<script>
+// --- 無限闖關模式補丁 (Infinite Levels Patch) ---
+(function() {
+    console.log("無限闖關模式已啟動！");
+
+    // 1. 備份舊的 win 函式 (以防萬一)
+    if (!GBase.prototype._oldWin) {
+        GBase.prototype._oldWin = GBase.prototype.win;
+    }
+
+    // 2. 覆蓋原本的 GBase.win (勝利) 函式
+    // 原本是直接結束，現在改成進入下一關
+    GBase.prototype.win = function() {
+        // 暫停遊戲迴圈，避免重複觸發
+        window.Eng.stop(); 
+        
+        // 關卡數 +1
+        this.st++; 
+        
+        // 獎勵機制 (每過一關補血、加分)
+        var bonusScore = 100 * this.st;
+        this.sc += bonusScore; // 過關加分
+        window.Sys.u.coins += 50; // 過關賺金幣
+        
+        // 播放音效或震動 (如果有)
+        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+        // 3. 顯示「過關轉場」視窗 (使用原本的 Modal 介面)
+        window.Layer.modal(
+            `<span style="color:#51cf66">🎉 LEVEL ${this.st-1} 完成！</span>`, 
+            `
+            <div style="background:rgba(255,255,255,0.1); padding:10px; border-radius:8px; margin:10px 0;">
+                <div>得分獎勵: +${bonusScore}</div>
+                <div style="color:#ffd43b; margin-top:5px;">⚠️ 警告：敵人速度提升！</div>
+            </div>
+            `, 
+            `<button class="primary" id="btn-next-lv" style="width:100%; padding:15px; font-size:1.2rem; box-shadow: 0 0 15px rgba(81, 207, 102, 0.4);">
+                🔥 挑戰第 ${this.st} 關
+             </button>`
+        );
+
+        // 4. 定義按下按鈕後的動作 (進入下一關)
+        setTimeout(() => { // 延遲綁定確保元素存在
+            var btn = document.getElementById('btn-next-lv');
+            if(btn) {
+                btn.onclick = () => {
+                    window.Layer.close(); // 關閉視窗
+                    
+                    // 取得當前遊戲實例
+                    var game = window.Eng.g;
+                    
+                    // --- 核心：提升難度 ---
+                    // mod 是難度係數，公式：基礎難度 + (關卡數 * 0.25)
+                    // 這樣越後面的關卡，敵人移動速度、生成速度都會變快
+                    game.mod = (game.blv * 0.5) + (game.st * 0.25); 
+                    
+                    // --- 重置場景 ---
+                    // 呼叫 rst() 會重置主角位置、清空敵人，但「保留」分數(sc)和關卡(st)
+                    game.rst(); 
+                    
+                    // 額外微調 (針對不同類型的遊戲)
+                    // 如果是射擊類，讓下一波敵人血量也增加
+                    if(game.enems) {
+                        game.wave_hp_bonus = (game.st - 1) * 2; 
+                    }
+                    // 稍微補血 (給玩家一點獎勵)
+                    game.hp = Math.min(game.hp + 30, window.Sys.has('maxhp') ? 150 : 100);
+                    
+                    // --- 更新介面並開始 ---
+                    document.getElementById('g-st').innerText = game.st;
+                    document.getElementById('g-hp').innerText = Math.floor(game.hp);
+                    window.toast(`第 ${game.st} 關 開始！`);
+                    
+                    // 繼續遊戲迴圈
+                    window.Eng.loop();
+                };
+                btn.focus(); // 讓按鈕取得焦點，方便鍵盤操作
+            }
+        }, 100);
+    };
+
+})();
+</script>
 </body>
 </html>
