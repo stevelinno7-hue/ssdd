@@ -785,137 +785,126 @@ var AI = {
 })();
 </script>
 <script>
-// --- 青蛙過街類遊戲修復補丁 (Fix for Frogger Types) ---
+// --- 青蛙過街類遊戲修復補丁 v2 (更穩定的移動版) ---
 (function() {
-    // 定義青蛙過街 (ID: 15) 的遊戲邏輯
+    // 定義青蛙過街 (ID: 15)
     GC[15] = class extends GBase {
         rst() {
-            this.p = { x: W/2-15, y: H-40, w: 30, h: 30 }; // 玩家初始位置
-            this.cars = []; // 車輛陣列
-            this.lanes = [  // 定義車道: y座標, 速度, 寬度, 間距, 顏色
-                {y:H-100, s:3, w:50, g:150, c:'#ff6b6b'},
-                {y:H-150, s:-4, w:40, g:120, c:'#ffd43b'},
-                {y:H-200, s:5, w:60, g:200, c:'#4dabf7'},
-                {y:H-250, s:-3, w:50, g:160, c:'#51cf66'},
-                {y:H-300, s:6, w:40, g:180, c:'#cc5de8'},
-                {y:H-350, s:-5, w:70, g:220, c:'#ff922b'}
+            this.p = { x: W/2-15, y: H-50, w: 30, h: 30 }; // 修正初始位置確保在畫面內
+            this.cars = [];
+            // 車道設定
+            this.lanes = [
+                {y:H-120, s:3, w:50, g:150, c:'#ff6b6b'},
+                {y:H-170, s:-4, w:40, g:120, c:'#ffd43b'},
+                {y:H-220, s:5, w:60, g:200, c:'#4dabf7'},
+                {y:H-270, s:-3, w:50, g:160, c:'#51cf66'},
+                {y:H-320, s:6, w:40, g:180, c:'#cc5de8'},
+                {y:H-370, s:-5, w:70, g:220, c:'#ff922b'}
             ];
-            // 根據難度增加車道速度
             this.lanes.forEach(l => l.s *= (1 + this.blv*0.1));
+            
+            // 用來記錄上一幀的按鍵狀態 (防止長按連續移動)
+            this.lastInp = { u:false, d:false, l:false, r:false };
         }
         
         upd() {
-            // 1. 玩家移動 (點擊式移動)
-            if (Inp.u_p) this.p.y -= 40; // 按一下上，跳一格
-            if (Inp.d_p) this.p.y += 40;
-            if (Inp.l_p) this.p.x -= 30;
-            if (Inp.r_p) this.p.x += 30;
+            // --- 移動邏輯修正 (直接檢測) ---
+            const step = 40; // 每次跳躍距離
             
-            // 邊界檢查
-            this.p.x = Math.max(0, Math.min(W-this.p.w, this.p.x));
-            this.p.y = Math.max(0, Math.min(H-this.p.w, this.p.y));
+            // 向上
+            if (Inp.u) {
+                if (!this.lastInp.u) this.p.y -= step; // 只有剛按下的瞬間移動
+                this.lastInp.u = true;
+            } else { this.lastInp.u = false; }
 
-            // 2. 生成與移動車輛
+            // 向下
+            if (Inp.d) {
+                if (!this.lastInp.d) this.p.y += step;
+                this.lastInp.d = true;
+            } else { this.lastInp.d = false; }
+
+            // 向左
+            if (Inp.l) {
+                if (!this.lastInp.l) this.p.x -= 30;
+                this.lastInp.l = true;
+            } else { this.lastInp.l = false; }
+
+            // 向右
+            if (Inp.r) {
+                if (!this.lastInp.r) this.p.x += 30;
+                this.lastInp.r = true;
+            } else { this.lastInp.r = false; }
+            
+            // 限制在畫面內
+            this.p.x = Math.max(0, Math.min(W-this.p.w, this.p.x));
+            this.p.y = Math.max(0, Math.min(H-this.p.h, this.p.y));
+
+            // --- 車輛生成與移動 (維持不變) ---
             this.lanes.forEach((l, i) => {
-                // 隨機生成車輛
                 if (Math.random() < 0.02 + (this.blv*0.005)) {
-                    // 檢查該車道最後一台車是否夠遠，避免重疊
                     const lastCar = this.cars.filter(c => c.l === i).pop();
                     if (!lastCar || Math.abs((l.s>0?0:W) - lastCar.x) > l.g) {
-                        this.cars.push({
-                            x: l.s > 0 ? -l.w : W,
-                            y: l.y,
-                            w: l.w,
-                            h: 30,
-                            s: l.s,
-                            c: l.c,
-                            l: i
-                        });
+                        this.cars.push({x: l.s>0 ? -l.w : W, y: l.y, w: l.w, h: 30, s: l.s, c: l.c, l: i});
                     }
                 }
             });
-
-            // 更新車輛位置
             this.cars.forEach(c => c.x += c.s);
-            // 移除超出畫面的車輛
             this.cars = this.cars.filter(c => c.x > -100 && c.x < W + 100);
 
-            // 3. 碰撞檢測 (撞車)
+            // 碰撞與勝利
             for (let c of this.cars) {
-                // 簡單的矩形碰撞
                 if (this.hit(this.p, {x:c.x+2, y:c.y+2, w:c.w-4, h:c.h-4})) {
-                    this.hurt(100); // 碰到車直接死亡
-                    return;
+                    this.hurt(100); return;
                 }
             }
-
-            // 4. 勝利條件 (到達頂部)
-            if (this.p.y < 50) {
-                this.win();
-            }
+            if (this.p.y < 50) this.win();
         }
 
         drw() {
-            // 畫終點線
+            // 背景與終點
+            Ctx.fillStyle = '#222';
+            Ctx.fillRect(0,0,W,H);
             Ctx.fillStyle = '#51cf66';
-            Ctx.fillRect(0, 0, W, 50);
-            
-            // 畫車道線 (裝飾)
-            Ctx.strokeStyle = '#444';
+            Ctx.fillRect(0, 0, W, 50); // 終點區
+            Ctx.fillStyle = '#868e96';
+            Ctx.fillRect(0, H-50, W, 50); // 起點區
+
+            // 車道線
+            Ctx.strokeStyle = '#555';
             Ctx.setLineDash([10, 10]);
             this.lanes.forEach(l => {
-                Ctx.beginPath();
-                Ctx.moveTo(0, l.y + 35);
-                Ctx.lineTo(W, l.y + 35);
-                Ctx.stroke();
+                Ctx.beginPath(); Ctx.moveTo(0, l.y + 35); Ctx.lineTo(W, l.y + 35); Ctx.stroke();
             });
             Ctx.setLineDash([]);
 
-            // 畫車輛
+            // 畫車
             this.cars.forEach(c => {
                 this.de(c.x, c.y, c.w, c.h, c.c);
-                // 車輪裝飾
-                Ctx.fillStyle = '#000';
-                Ctx.fillRect(c.x+5, c.y-2, 8, 4);
-                Ctx.fillRect(c.x+c.w-13, c.y-2, 8, 4);
-                Ctx.fillRect(c.x+5, c.y+c.h-2, 8, 4);
-                Ctx.fillRect(c.x+c.w-13, c.y+c.h-2, 8, 4);
+                Ctx.fillStyle = 'rgba(0,0,0,0.3)'; // 車窗
+                Ctx.fillRect(c.x+5, c.y+5, c.w-10, c.h-10);
             });
 
-            // 畫青蛙 (玩家)
-            this.dp(this.p.x, this.p.y, this.p.w, this.p.h);
-            // 青蛙眼睛
+            // 畫青蛙
+            Ctx.fillStyle = '#40c057';
+            Ctx.fillRect(this.p.x, this.p.y, this.p.w, this.p.h);
+            // 眼睛
             Ctx.fillStyle = '#000';
             Ctx.beginPath(); 
-            Ctx.arc(this.p.x+8, this.p.y+8, 3, 0, Math.PI*2);
-            Ctx.arc(this.p.x+22, this.p.y+8, 3, 0, Math.PI*2);
+            Ctx.arc(this.p.x+8, this.p.y+8, 4, 0, Math.PI*2);
+            Ctx.arc(this.p.x+22, this.p.y+8, 4, 0, Math.PI*2);
             Ctx.fill();
         }
     };
 
-    // --- 變體遊戲映射 ---
-    // 讓 36 (賽車手) 使用相同的邏輯，但增加難度或改變外觀
+    // 變體：賽車手 (ID 36)
     GC[36] = class extends GC[15] {
         init() {
             super.init();
-            // 賽車模式：速度更快，車道更密集
             this.lanes.forEach(l => { l.s *= 1.5; l.g *= 0.8; });
         }
     };
-
-    // 確保輸入檢測包含 "按一下" (Pressed) 的狀態，因為青蛙過街適合一格一格跳
-    const _oldUpd = window.Eng.upd || function(){};
-    window.Eng.upd = function() {
-        // 擴充 Input System 增加 _p (pressed) 屬性，只在按下的那一幀為 true
-        ['u','d','l','r','a','b'].forEach(k => {
-            if(!window.Inp[k+'_last'] && window.Inp[k]) window.Inp[k+'_p'] = true;
-            else window.Inp[k+'_p'] = false;
-            window.Inp[k+'_last'] = window.Inp[k];
-        });
-        _oldUpd.call(window.Eng);
-    };
-
-    console.log("青蛙過街類遊戲修復補丁已加載");
+    
+    console.log("青蛙過街 V2 (修正移動版) 已加載");
 })();
 </script>
 </body>
